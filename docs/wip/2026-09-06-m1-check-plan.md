@@ -159,9 +159,10 @@ FOLIO-101 and FOLIO-102 apply per active layer; the finding names the
 layer and the path. This is why four codes cover what an earlier draft
 split across seven.
 
-`repofolio` required: the manifest, `README.md`, `LICENSE`, `bootstrap`,
-`runw`, `.gitignore`, `.gitattributes`, `.editorconfig`, `docs/`,
-`scripts/`. Recommended: `Foliofile`, `CHANGELOG.md`, `CODEOWNERS`,
+`repofolio` required: `README.md`, `LICENSE`, `bootstrap`, `runw`,
+`.gitignore`, `.gitattributes`, `.editorconfig`, `docs/`, `scripts/`.
+Manifest presence belongs to FOLIO-001 alone — do not also list it here, or
+a repository with no manifest reports the same fact under two codes. Recommended: `Foliofile`, `CHANGELOG.md`, `CODEOWNERS`,
 `CONTRIBUTING.md`, `.githooks/`.
 
 `rust` required: `Cargo.toml`, `Cargo.lock`. Recommended:
@@ -175,7 +176,10 @@ split across seven.
 `discover -> parse -> validate -> core rules -> ecosystem detection and
 rules -> report`. No stage aborts the run. FOLIO-002 reports as *skipped*
 rather than failed when FOLIO-001 has already failed, because there is
-nothing to validate.
+nothing to validate. Represent that as severity `info` with a message saying
+it was skipped and why: the mirrored diagnostics shape has only
+error/warning/info, `info` keeps exit-code grading correct, and it maps to
+SARIF later as level `note` with kind `notApplicable`.
 
 - Verify: a repository with no manifest still produces FOLIO-101 and
   FOLIO-102 findings, and FOLIO-002 is marked skipped.
