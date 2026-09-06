@@ -1,5 +1,5 @@
 //! Bundled schema and validation — M1 check-plan step 3
-//! (docs/wip/2026-09-06-m1-check-plan.md).
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md).
 //!
 //! The schema is the Repofolio project manifest schema, copied
 //! byte-identically from `driftsys/schemas/project/v1.json` into

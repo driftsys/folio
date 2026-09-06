@@ -1,5 +1,5 @@
 //! Manifest parsing to `serde_json::Value` — M1 check-plan step 2
-//! (docs/wip/2026-09-06-m1-check-plan.md).
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md).
 //!
 //! Each of the three manifest formats is parsed to the same
 //! `serde_json::Value` shape, so everything downstream (schema

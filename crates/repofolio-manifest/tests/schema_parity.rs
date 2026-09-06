@@ -1,5 +1,5 @@
 //! Schema parity test — M1 check-plan step 4
-//! (docs/wip/2026-09-06-m1-check-plan.md), closing verification
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md), closing verification
 //! follow-up 6 in `folio-plan.md`.
 //!
 //! Diffs the bundled schema copy against the canonical

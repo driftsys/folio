@@ -1,9 +1,9 @@
 //! Ecosystem registry — M1 check-plan step 6
-//! (docs/wip/2026-09-06-m1-check-plan.md).
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md).
 //!
 //! `Ecosystem` mirrors the v0.1 scaffold envelope of the on-disk
 //! `folio.ecosystem.toml` format described in Part 6 of
-//! `docs/wip/2026-09-06-folio-task-model-design.md` — `"$schema"`,
+//! `docs/archive/specs/2026-09-06-folio-task-model-design.md` — `"$schema"`,
 //! `[ecosystem]`, `[markers]`, and `commands` — field for field, so the
 //! v0.4 ecosystem loader deserializes a file with only that shape
 //! straight into this type with no translation layer. It does not yet
@@ -83,7 +83,7 @@
 //! M1 populates two instances by hand — `repofolio` (always active) and
 //! `rust` (activated by a root `Cargo.toml` declaring `[workspace]`).
 //! Step 6 shaped both with empty `markers` and `commands`; step 7
-//! (docs/wip/2026-09-06-m1-check-plan.md) fills in `markers` with the
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md) fills in `markers` with the
 //! required and recommended path lists that back `FOLIO-101`/`FOLIO-102`.
 //! `commands` stays empty — no milestone through M1 wires ecosystem
 //! commands.
@@ -183,7 +183,7 @@ pub struct Markers {
 /// with no separate prose convention to miss.
 ///
 /// The rule that reads this list (`repofolio_core::rules::path_rules`,
-/// step 7 of docs/wip/2026-09-06-m1-check-plan.md) treats an `AnyOf`
+/// step 7 of docs/archive/plans/2026-09-06-m1-check-plan.md) treats an `AnyOf`
 /// group as satisfied when any one alternative is present, and reports a
 /// missing group as a single finding naming every alternative — never one
 /// finding per alternative.
@@ -259,7 +259,7 @@ impl Default for Commands {
 /// loaded from any `folio.ecosystem.toml` file, so `schema` is `None`.
 ///
 /// `markers` carries the core-layer conformance list
-/// (docs/wip/2026-09-06-m1-check-plan.md step 7). Manifest presence is
+/// (docs/archive/plans/2026-09-06-m1-check-plan.md step 7). Manifest presence is
 /// deliberately absent from `must`: that fact belongs to `FOLIO-001`
 /// alone, so a repository with no manifest does not also report it as a
 /// missing `FOLIO-101` path.
@@ -300,7 +300,7 @@ pub fn repofolio_ecosystem() -> Ecosystem {
 /// `schema` is `None`.
 ///
 /// `markers` carries the `rust`-layer conformance list
-/// (docs/wip/2026-09-06-m1-check-plan.md step 7). The recommended
+/// (docs/archive/plans/2026-09-06-m1-check-plan.md step 7). The recommended
 /// `rustfmt.toml`/`.rustfmt.toml` spellings are one `MarkerSpec::AnyOf`
 /// entry, not two independent entries — see the `MarkerSpec` doc comment.
 pub fn rust_ecosystem() -> Ecosystem {
@@ -401,7 +401,7 @@ mod tests {
     }
 
     /// Pins the exact required/recommended path lists
-    /// (docs/wip/2026-09-06-m1-check-plan.md step 7). Manifest presence
+    /// (docs/archive/plans/2026-09-06-m1-check-plan.md step 7). Manifest presence
     /// is deliberately absent from `must` — that belongs to `FOLIO-001`
     /// alone.
     #[test]

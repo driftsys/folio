@@ -1,5 +1,5 @@
 //! Fixture-level tests for the M1 check pipeline
-//! (docs/wip/2026-09-06-m1-check-plan.md steps 7-8).
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md steps 7-8).
 //!
 //! Each fixture under `tests/fixtures/` is a full repository tree, not
 //! just a manifest — these pin the whole finding set `check()` produces

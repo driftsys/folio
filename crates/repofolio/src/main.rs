@@ -1,7 +1,7 @@
 //! folio — reference CLI implementation of the Repofolio standard.
 //! M1 scope: `check`. See docs/planning/folio-plan.md (Phase M1).
 //!
-//! `check` (M1 check-plan step 9, docs/wip/2026-09-06-m1-check-plan.md)
+//! `check` (M1 check-plan step 9, docs/archive/plans/2026-09-06-m1-check-plan.md)
 //! wires `repofolio_core::check` onto the command line and grades the
 //! process exit status: 0 when clean or warnings-only (so continuous
 //! integration can annotate a build without failing it), 1 when at least

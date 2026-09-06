@@ -2,7 +2,7 @@
 //! within the folio workspace (Integration architecture, M0 item 1).
 //!
 //! Discovery, parsing and schema validation of the project manifest — M1
-//! check-plan steps 1-4 (docs/wip/2026-09-06-m1-check-plan.md). Discovery
+//! check-plan steps 1-4 (docs/archive/plans/2026-09-06-m1-check-plan.md). Discovery
 //! failure (`DiscoverError`), parse failure (`ParseError`), and
 //! schema-validation failure (`SchemaError`) are distinct types: they map
 //! to different diagnostic codes (`FOLIO-001`, `FOLIO-003`, and

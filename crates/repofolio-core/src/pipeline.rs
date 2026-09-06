@@ -1,5 +1,5 @@
 //! Check pipeline — M1 check-plan step 8
-//! (docs/wip/2026-09-06-m1-check-plan.md).
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md).
 //!
 //! `discover -> parse -> validate -> core rules -> ecosystem detection
 //! and rules -> report`. No stage aborts the run: `folio check` against

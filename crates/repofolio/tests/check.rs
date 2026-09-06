@@ -1,5 +1,5 @@
 //! Acceptance tests for `folio check` — M1 check-plan step 9
-//! (docs/wip/2026-09-06-m1-check-plan.md).
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md).
 //!
 //! Runs the built `folio` binary end to end against small fixture
 //! repositories, pinning the exit-status contract (0 clean/warnings-only,

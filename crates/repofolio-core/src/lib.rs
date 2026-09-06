@@ -3,7 +3,7 @@
 //!
 //! The diagnostic report shape (M1 check-plan step 5) and the ecosystem
 //! registry (M1 check-plan step 6) are frozen at v1.0 — see
-//! docs/wip/2026-09-06-m1-check-plan.md. The `FOLIO-` rule registry
+//! docs/archive/plans/2026-09-06-m1-check-plan.md. The `FOLIO-` rule registry
 //! (step 7) and the check pipeline that runs them in order (step 8)
 //! build on both without reshaping them.
 

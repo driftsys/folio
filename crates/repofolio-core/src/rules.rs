@@ -1,5 +1,5 @@
 //! FOLIO- rule registry — M1 check-plan step 7
-//! (docs/wip/2026-09-06-m1-check-plan.md).
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md).
 //!
 //! Five codes, and five codes only:
 //!
