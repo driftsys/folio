@@ -26,7 +26,7 @@ use std::path::Path;
 
 use repofolio_manifest::{discover_manifest, parse_manifest, validate_manifest};
 
-use crate::ecosystem::Ecosystem;
+use crate::ecosystem::{Ecosystem, MarkerSpec};
 use crate::report::{Diagnostic, Location, Severity};
 
 const FOLIO_001: &str = "FOLIO-001";
@@ -110,18 +110,17 @@ fn skipped_schema_diagnostic(file_name: &str) -> Diagnostic {
 /// path-presence checks for one active ecosystem's markers, naming
 /// `ecosystem`'s name as the finding's layer.
 ///
-/// Each marker entry is a path spec: a bare path (`"README.md"`), or
-/// several alternatives joined by the literal separator `" or "`
-/// (`"rustfmt.toml or .rustfmt.toml"`), satisfied when any one
-/// alternative is present. A missing alternative group produces exactly
-/// one finding naming the full spec text, not one finding per
+/// Each marker entry is a [`MarkerSpec`]: a single required path, or an
+/// alternative group satisfied when any one of its paths is present. A
+/// missing alternative group produces exactly one finding naming every
+/// alternative (via `MarkerSpec`'s `Display`), not one finding per
 /// alternative — otherwise a repository satisfying the recommendation
 /// through its second spelling would still be warned about the first.
 pub fn path_rules(repo_root: &Path, ecosystem: &Ecosystem) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
 
     for spec in &ecosystem.markers.must {
-        if !path_spec_exists(repo_root, spec) {
+        if !marker_spec_exists(repo_root, spec) {
             diagnostics.push(path_diagnostic(
                 FOLIO_101,
                 Severity::Error,
@@ -133,7 +132,7 @@ pub fn path_rules(repo_root: &Path, ecosystem: &Ecosystem) -> Vec<Diagnostic> {
     }
 
     for spec in &ecosystem.markers.should {
-        if !path_spec_exists(repo_root, spec) {
+        if !marker_spec_exists(repo_root, spec) {
             diagnostics.push(path_diagnostic(
                 FOLIO_102,
                 Severity::Warning,
@@ -147,12 +146,14 @@ pub fn path_rules(repo_root: &Path, ecosystem: &Ecosystem) -> Vec<Diagnostic> {
     diagnostics
 }
 
-/// A path spec is satisfied when any of its `" or "`-joined alternatives
-/// exists at `repo_root`. A spec with no `" or "` in it is a single
-/// alternative, so this also covers the ordinary bare-path case.
-fn path_spec_exists(repo_root: &Path, spec: &str) -> bool {
-    spec.split(" or ")
-        .any(|alternative| repo_root.join(alternative.trim()).exists())
+/// A marker spec is satisfied when its single path exists at
+/// `repo_root`, or — for an alternative group — when any one of its
+/// paths exists there.
+fn marker_spec_exists(repo_root: &Path, spec: &MarkerSpec) -> bool {
+    match spec {
+        MarkerSpec::One(path) => repo_root.join(path).exists(),
+        MarkerSpec::AnyOf(paths) => paths.iter().any(|path| repo_root.join(path).exists()),
+    }
 }
 
 fn path_diagnostic(
@@ -160,7 +161,7 @@ fn path_diagnostic(
     severity: Severity,
     kind: &str,
     layer: &str,
-    spec: &str,
+    spec: &MarkerSpec,
 ) -> Diagnostic {
     Diagnostic {
         severity,
@@ -178,7 +179,7 @@ mod tests {
 
     use crate::ecosystem::{Commands, EcosystemMeta, Markers};
 
-    fn ecosystem_with(name: &str, must: &[&str], should: &[&str]) -> Ecosystem {
+    fn ecosystem_with(name: &str, must: Vec<MarkerSpec>, should: Vec<MarkerSpec>) -> Ecosystem {
         Ecosystem {
             schema: None,
             ecosystem: EcosystemMeta {
@@ -186,12 +187,17 @@ mod tests {
                 version: 1,
             },
             always: false,
-            markers: Markers {
-                must: must.iter().map(|s| s.to_string()).collect(),
-                should: should.iter().map(|s| s.to_string()).collect(),
-            },
+            markers: Markers { must, should },
             commands: Commands::default(),
         }
+    }
+
+    fn one(path: &str) -> MarkerSpec {
+        MarkerSpec::One(path.to_string())
+    }
+
+    fn any_of(paths: &[&str]) -> MarkerSpec {
+        MarkerSpec::AnyOf(paths.iter().map(|s| s.to_string()).collect())
     }
 
     // FOLIO-001 / FOLIO-002 -------------------------------------------
@@ -265,7 +271,7 @@ mod tests {
     #[test]
     fn folio_101_fires_for_a_missing_required_path() {
         let temp = tempfile::tempdir().expect("create temp dir");
-        let ecosystem = ecosystem_with("repofolio", &["README.md"], &[]);
+        let ecosystem = ecosystem_with("repofolio", vec![one("README.md")], vec![]);
 
         let diagnostics = path_rules(temp.path(), &ecosystem);
 
@@ -280,7 +286,7 @@ mod tests {
     fn folio_101_is_silent_when_the_required_path_is_present() {
         let temp = tempfile::tempdir().expect("create temp dir");
         fs::write(temp.path().join("README.md"), "hello\n").unwrap();
-        let ecosystem = ecosystem_with("repofolio", &["README.md"], &[]);
+        let ecosystem = ecosystem_with("repofolio", vec![one("README.md")], vec![]);
 
         let diagnostics = path_rules(temp.path(), &ecosystem);
 
@@ -291,7 +297,7 @@ mod tests {
     fn folio_101_names_a_directory_spec_satisfied_by_the_directorys_presence() {
         let temp = tempfile::tempdir().expect("create temp dir");
         fs::create_dir(temp.path().join("docs")).unwrap();
-        let ecosystem = ecosystem_with("repofolio", &["docs/"], &[]);
+        let ecosystem = ecosystem_with("repofolio", vec![one("docs/")], vec![]);
 
         let diagnostics = path_rules(temp.path(), &ecosystem);
 
@@ -303,7 +309,7 @@ mod tests {
     #[test]
     fn folio_102_fires_for_a_missing_recommended_path() {
         let temp = tempfile::tempdir().expect("create temp dir");
-        let ecosystem = ecosystem_with("repofolio", &[], &["CHANGELOG.md"]);
+        let ecosystem = ecosystem_with("repofolio", vec![], vec![one("CHANGELOG.md")]);
 
         let diagnostics = path_rules(temp.path(), &ecosystem);
 
@@ -318,7 +324,7 @@ mod tests {
     fn folio_102_is_silent_when_the_recommended_path_is_present() {
         let temp = tempfile::tempdir().expect("create temp dir");
         fs::write(temp.path().join("CHANGELOG.md"), "# changelog\n").unwrap();
-        let ecosystem = ecosystem_with("repofolio", &[], &["CHANGELOG.md"]);
+        let ecosystem = ecosystem_with("repofolio", vec![], vec![one("CHANGELOG.md")]);
 
         let diagnostics = path_rules(temp.path(), &ecosystem);
 
@@ -329,7 +335,11 @@ mod tests {
     fn folio_102_alternate_group_is_silent_when_either_alternative_is_present() {
         let temp = tempfile::tempdir().expect("create temp dir");
         fs::write(temp.path().join(".rustfmt.toml"), "").unwrap();
-        let ecosystem = ecosystem_with("rust", &[], &["rustfmt.toml or .rustfmt.toml"]);
+        let ecosystem = ecosystem_with(
+            "rust",
+            vec![],
+            vec![any_of(&["rustfmt.toml", ".rustfmt.toml"])],
+        );
 
         let diagnostics = path_rules(temp.path(), &ecosystem);
 
@@ -339,7 +349,11 @@ mod tests {
     #[test]
     fn folio_102_alternate_group_produces_exactly_one_finding_naming_the_full_spec() {
         let temp = tempfile::tempdir().expect("create temp dir");
-        let ecosystem = ecosystem_with("rust", &[], &["rustfmt.toml or .rustfmt.toml"]);
+        let ecosystem = ecosystem_with(
+            "rust",
+            vec![],
+            vec![any_of(&["rustfmt.toml", ".rustfmt.toml"])],
+        );
 
         let diagnostics = path_rules(temp.path(), &ecosystem);
 
@@ -355,16 +369,20 @@ mod tests {
     #[test]
     fn path_rules_reports_both_required_and_recommended_findings_together() {
         let temp = tempfile::tempdir().expect("create temp dir");
-        let ecosystem = ecosystem_with("repofolio", &["README.md"], &["CHANGELOG.md"]);
+        let ecosystem = ecosystem_with(
+            "repofolio",
+            vec![one("README.md")],
+            vec![one("CHANGELOG.md")],
+        );
 
         let diagnostics = path_rules(temp.path(), &ecosystem);
 
         assert_eq!(diagnostics.len(), 2);
-        assert!(diagnostics
-            .iter()
-            .any(|d| d.code == "FOLIO-101" && d.severity == Severity::Error));
-        assert!(diagnostics
-            .iter()
-            .any(|d| d.code == "FOLIO-102" && d.severity == Severity::Warning));
+        assert!(diagnostics.iter().any(|d| d.code == "FOLIO-101"
+            && d.severity == Severity::Error
+            && d.layer.as_deref() == Some("repofolio")));
+        assert!(diagnostics.iter().any(|d| d.code == "FOLIO-102"
+            && d.severity == Severity::Warning
+            && d.layer.as_deref() == Some("repofolio")));
     }
 }

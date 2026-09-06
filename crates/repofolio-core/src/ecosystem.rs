@@ -140,21 +140,61 @@ pub struct EcosystemMeta {
 /// the task-model design). `rust`'s own activation rule is the dedicated
 /// `[workspace]` content check below, not marker presence — these lists
 /// exist for the conformance rules alone.
-///
-/// A path spec is normally a bare path (`"README.md"`). It may instead
-/// join several acceptable spellings with the literal separator `" or "`
-/// (`"rustfmt.toml or .rustfmt.toml"`); the rule that reads this list
-/// (`repofolio_core::rules::path_rules`, step 7 of
-/// docs/wip/2026-09-06-m1-check-plan.md) treats such a group as satisfied
-/// when any one alternative is present, and reports a missing group as a
-/// single finding naming the full spec text — never one finding per
-/// alternative.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Markers {
     #[serde(default)]
-    pub must: Vec<String>,
+    pub must: Vec<MarkerSpec>,
     #[serde(default)]
-    pub should: Vec<String>,
+    pub should: Vec<MarkerSpec>,
+}
+
+/// One entry in a `Markers` list: either a single required path, or a
+/// group of acceptable spellings satisfied by any one of them (Part 6 of
+/// the task-model design shows the plain-array form; the nested-array
+/// alternative form is this type's addition, recorded there too).
+///
+/// `#[serde(untagged)]` reads a bare TOML string as `One` and a nested
+/// array of strings as `AnyOf`, so an ecosystem author writes
+///
+/// ```toml
+/// [markers]
+/// should = ["rust-toolchain.toml", ["rustfmt.toml", ".rustfmt.toml"]]
+/// ```
+///
+/// and gets exactly two recommendations, the second satisfied by either
+/// spelling — rather than a third, unauthored, entry produced by
+/// splitting a string like `"rustfmt.toml or .rustfmt.toml"` on a literal
+/// separator. That convention was this type's predecessor: it read fine
+/// in a Rust doc comment but was invisible to a third-party ecosystem
+/// author writing a plain `folio.ecosystem.toml`, who would naturally
+/// write `should = ["rustfmt.toml", ".rustfmt.toml"]` as two independent
+/// entries and get exactly the double-warning the convention existed to
+/// prevent. Expressing the alternation in the data instead of in a
+/// separator closes that gap: the shape itself says "any one of these",
+/// with no separate prose convention to miss.
+///
+/// The rule that reads this list (`repofolio_core::rules::path_rules`,
+/// step 7 of docs/wip/2026-09-06-m1-check-plan.md) treats an `AnyOf`
+/// group as satisfied when any one alternative is present, and reports a
+/// missing group as a single finding naming every alternative — never one
+/// finding per alternative.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MarkerSpec {
+    One(String),
+    AnyOf(Vec<String>),
+}
+
+impl std::fmt::Display for MarkerSpec {
+    /// Renders a single path as itself, and an alternative group joined
+    /// by `" or "` — the finding text a missing marker reports, e.g.
+    /// `"rustfmt.toml or .rustfmt.toml"`.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MarkerSpec::One(path) => write!(f, "{path}"),
+            MarkerSpec::AnyOf(paths) => write!(f, "{}", paths.join(" or ")),
+        }
+    }
 }
 
 /// The `commands` table: verb -> build_type -> command
@@ -203,22 +243,22 @@ pub fn repofolio_ecosystem() -> Ecosystem {
         always: true,
         markers: Markers {
             must: vec![
-                "README.md".to_string(),
-                "LICENSE".to_string(),
-                "bootstrap".to_string(),
-                "runw".to_string(),
-                ".gitignore".to_string(),
-                ".gitattributes".to_string(),
-                ".editorconfig".to_string(),
-                "docs/".to_string(),
-                "scripts/".to_string(),
+                MarkerSpec::One("README.md".to_string()),
+                MarkerSpec::One("LICENSE".to_string()),
+                MarkerSpec::One("bootstrap".to_string()),
+                MarkerSpec::One("runw".to_string()),
+                MarkerSpec::One(".gitignore".to_string()),
+                MarkerSpec::One(".gitattributes".to_string()),
+                MarkerSpec::One(".editorconfig".to_string()),
+                MarkerSpec::One("docs/".to_string()),
+                MarkerSpec::One("scripts/".to_string()),
             ],
             should: vec![
-                "Foliofile".to_string(),
-                "CHANGELOG.md".to_string(),
-                "CODEOWNERS".to_string(),
-                "CONTRIBUTING.md".to_string(),
-                ".githooks/".to_string(),
+                MarkerSpec::One("Foliofile".to_string()),
+                MarkerSpec::One("CHANGELOG.md".to_string()),
+                MarkerSpec::One("CODEOWNERS".to_string()),
+                MarkerSpec::One("CONTRIBUTING.md".to_string()),
+                MarkerSpec::One(".githooks/".to_string()),
             ],
         },
         commands: Commands::default(),
@@ -231,9 +271,8 @@ pub fn repofolio_ecosystem() -> Ecosystem {
 ///
 /// `markers` carries the `rust`-layer conformance list
 /// (docs/wip/2026-09-06-m1-check-plan.md step 7). The recommended
-/// `rustfmt.toml`/`.rustfmt.toml` spellings are one alternate-group entry
-/// joined by `" or "`, not two independent entries — see the `Markers`
-/// doc comment.
+/// `rustfmt.toml`/`.rustfmt.toml` spellings are one `MarkerSpec::AnyOf`
+/// entry, not two independent entries — see the `MarkerSpec` doc comment.
 pub fn rust_ecosystem() -> Ecosystem {
     Ecosystem {
         schema: None,
@@ -243,10 +282,16 @@ pub fn rust_ecosystem() -> Ecosystem {
         },
         always: false,
         markers: Markers {
-            must: vec!["Cargo.toml".to_string(), "Cargo.lock".to_string()],
+            must: vec![
+                MarkerSpec::One("Cargo.toml".to_string()),
+                MarkerSpec::One("Cargo.lock".to_string()),
+            ],
             should: vec![
-                "rust-toolchain.toml".to_string(),
-                "rustfmt.toml or .rustfmt.toml".to_string(),
+                MarkerSpec::One("rust-toolchain.toml".to_string()),
+                MarkerSpec::AnyOf(vec![
+                    "rustfmt.toml".to_string(),
+                    ".rustfmt.toml".to_string(),
+                ]),
             ],
         },
         commands: Commands::default(),
@@ -297,25 +342,25 @@ mod tests {
         assert_eq!(
             ecosystem.markers.must,
             vec![
-                "README.md".to_string(),
-                "LICENSE".to_string(),
-                "bootstrap".to_string(),
-                "runw".to_string(),
-                ".gitignore".to_string(),
-                ".gitattributes".to_string(),
-                ".editorconfig".to_string(),
-                "docs/".to_string(),
-                "scripts/".to_string(),
+                MarkerSpec::One("README.md".to_string()),
+                MarkerSpec::One("LICENSE".to_string()),
+                MarkerSpec::One("bootstrap".to_string()),
+                MarkerSpec::One("runw".to_string()),
+                MarkerSpec::One(".gitignore".to_string()),
+                MarkerSpec::One(".gitattributes".to_string()),
+                MarkerSpec::One(".editorconfig".to_string()),
+                MarkerSpec::One("docs/".to_string()),
+                MarkerSpec::One("scripts/".to_string()),
             ]
         );
         assert_eq!(
             ecosystem.markers.should,
             vec![
-                "Foliofile".to_string(),
-                "CHANGELOG.md".to_string(),
-                "CODEOWNERS".to_string(),
-                "CONTRIBUTING.md".to_string(),
-                ".githooks/".to_string(),
+                MarkerSpec::One("Foliofile".to_string()),
+                MarkerSpec::One("CHANGELOG.md".to_string()),
+                MarkerSpec::One("CODEOWNERS".to_string()),
+                MarkerSpec::One("CONTRIBUTING.md".to_string()),
+                MarkerSpec::One(".githooks/".to_string()),
             ]
         );
     }
@@ -330,21 +375,26 @@ mod tests {
 
     /// Pins the `rust`-layer required/recommended path list. The
     /// recommended `rustfmt.toml`/`.rustfmt.toml` spellings are one
-    /// alternate-group entry joined by `" or "`, not two independent
-    /// entries.
+    /// `MarkerSpec::AnyOf` entry, not two independent entries.
     #[test]
     fn rust_markers_match_the_step_7_conformance_list() {
         let ecosystem = rust_ecosystem();
 
         assert_eq!(
             ecosystem.markers.must,
-            vec!["Cargo.toml".to_string(), "Cargo.lock".to_string()]
+            vec![
+                MarkerSpec::One("Cargo.toml".to_string()),
+                MarkerSpec::One("Cargo.lock".to_string()),
+            ]
         );
         assert_eq!(
             ecosystem.markers.should,
             vec![
-                "rust-toolchain.toml".to_string(),
-                "rustfmt.toml or .rustfmt.toml".to_string(),
+                MarkerSpec::One("rust-toolchain.toml".to_string()),
+                MarkerSpec::AnyOf(vec![
+                    "rustfmt.toml".to_string(),
+                    ".rustfmt.toml".to_string()
+                ]),
             ]
         );
     }
@@ -451,13 +501,45 @@ release = "cargo build --release"
         );
         assert_eq!(ecosystem.ecosystem.name, "rust");
         assert_eq!(ecosystem.ecosystem.version, 1);
-        assert_eq!(ecosystem.markers.must, vec!["Cargo.toml".to_string()]);
+        assert_eq!(
+            ecosystem.markers.must,
+            vec![MarkerSpec::One("Cargo.toml".to_string())]
+        );
         assert_eq!(
             ecosystem.markers.should,
-            vec!["rust-toolchain.toml".to_string()]
+            vec![MarkerSpec::One("rust-toolchain.toml".to_string())]
         );
         // Not part of the file format: always is never set by a loaded file.
         assert!(!ecosystem.always);
+    }
+
+    /// The nested-array alternative form: a `[markers]` list may mix bare
+    /// strings (`MarkerSpec::One`) with a nested array of strings
+    /// (`MarkerSpec::AnyOf`), matching Part 6 of the task-model design's
+    /// description of the on-disk format after this batch's fix.
+    #[test]
+    fn markers_should_parses_a_nested_array_as_an_any_of_group() {
+        let toml = r#"
+[ecosystem]
+name = "rust"
+version = 1
+
+[markers]
+should = ["rust-toolchain.toml", ["rustfmt.toml", ".rustfmt.toml"]]
+"#;
+
+        let ecosystem: Ecosystem = toml_edit::de::from_str(toml).expect("nested array parses");
+
+        assert_eq!(
+            ecosystem.markers.should,
+            vec![
+                MarkerSpec::One("rust-toolchain.toml".to_string()),
+                MarkerSpec::AnyOf(vec![
+                    "rustfmt.toml".to_string(),
+                    ".rustfmt.toml".to_string()
+                ]),
+            ]
+        );
     }
 
     /// (a) A byte-for-byte copy of the real reference file —

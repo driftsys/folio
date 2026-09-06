@@ -103,7 +103,9 @@ mod tests {
         assert!(report
             .diagnostics
             .iter()
-            .any(|d| d.layer.as_deref() == Some("rust") && d.code == "FOLIO-101"));
+            .any(|d| d.layer.as_deref() == Some("rust")
+                && d.code == "FOLIO-101"
+                && d.severity == Severity::Error));
     }
 
     #[test]

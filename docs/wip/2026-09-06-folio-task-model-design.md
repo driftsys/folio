@@ -297,8 +297,21 @@ debug   = "unity -batchmode -quit -projectPath ."
 release = "unity -batchmode -quit -projectPath . -release"
 ```
 
-Markers give both detection and the FOLIO-101/102 conformance rules.
-`commands` is keyed `verb → build_type → command`.
+Markers give both detection and the FOLIO-101/102 conformance rules. A
+marker entry is normally a bare path string. Nesting a list of strings in
+its place declares a group of acceptable spellings, satisfied when any
+one of them is present — for example, `rust`'s recommended markers are
+
+```toml
+[markers]
+should = ["rust-toolchain.toml", ["rustfmt.toml", ".rustfmt.toml"]]
+```
+
+which reports one `FOLIO-102` finding naming both spellings if neither
+`rustfmt.toml` nor `.rustfmt.toml` is present, not one finding per
+spelling — a repository satisfying the recommendation through either
+spelling is not warned about the other. `commands` is keyed
+`verb → build_type → command`.
 
 Three sources, layered like tool source classes: built-in (compiled in),
 repository-local (`ecosystems/` in the repository), and remote (a git
