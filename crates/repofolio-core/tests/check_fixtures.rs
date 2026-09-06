@@ -115,6 +115,7 @@ fn partial_fixture_pins_the_expected_finding_set() {
     // No manifest-level findings: project.toml is present and valid.
     assert!(!report.diagnostics.iter().any(|d| d.code == "FOLIO-001"));
     assert!(!report.diagnostics.iter().any(|d| d.code == "FOLIO-002"));
+    assert!(!report.diagnostics.iter().any(|d| d.code == "FOLIO-003"));
 
     assert_eq!(
         paths_for(&report, "FOLIO-101", Severity::Error, Some("repofolio")),

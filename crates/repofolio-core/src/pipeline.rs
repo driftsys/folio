@@ -18,7 +18,7 @@ use crate::rules::{manifest_rules, path_rules};
 pub fn check(repo_root: &Path) -> Report {
     let mut diagnostics = Vec::new();
 
-    // discover -> parse -> validate (FOLIO-001, FOLIO-002).
+    // discover -> parse -> validate (FOLIO-001, FOLIO-003, FOLIO-002).
     diagnostics.extend(manifest_rules(repo_root));
 
     // core rules: the repofolio layer is active in every repository.
@@ -87,6 +87,37 @@ mod tests {
         assert!(path_findings
             .iter()
             .any(|d| d.code == "FOLIO-102" && d.severity == Severity::Warning));
+    }
+
+    /// Fixture-level coverage for the `FOLIO-003` path through the full
+    /// pipeline (unit-level coverage lives in `rules.rs`): a repository
+    /// whose `project.toml` exists but fails to parse must report
+    /// `FOLIO-003`, not `FOLIO-001`, and `FOLIO-002` must be skipped with
+    /// a message naming `FOLIO-003` as the reason.
+    #[test]
+    fn a_repository_with_an_unparseable_manifest_produces_folio_003_and_a_skipped_folio_002() {
+        let temp = tempfile::tempdir().expect("create temp dir");
+        fs::write(temp.path().join("project.toml"), "name = \n").unwrap();
+
+        let report = check(temp.path());
+
+        let folio_003 = report
+            .diagnostics
+            .iter()
+            .find(|d| d.code == "FOLIO-003")
+            .expect("FOLIO-003 is present");
+        assert_eq!(folio_003.severity, Severity::Error);
+
+        let folio_002 = report
+            .diagnostics
+            .iter()
+            .find(|d| d.code == "FOLIO-002")
+            .expect("FOLIO-002 is present");
+        assert_eq!(folio_002.severity, Severity::Info);
+        assert!(folio_002.message.contains("skipped"));
+        assert!(folio_002.message.contains("FOLIO-003"));
+
+        assert!(!report.diagnostics.iter().any(|d| d.code == "FOLIO-001"));
     }
 
     #[test]

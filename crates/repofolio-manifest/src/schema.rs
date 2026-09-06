@@ -13,7 +13,7 @@ const SCHEMA_JSON: &str = include_str!("../schema/project-v1.json");
 
 /// Schema-validation failure. Maps to `FOLIO-002` (manifest fails the
 /// bundled schema) once diagnostic codes are assigned in
-/// `repofolio-core` — distinct from `crate::ParseError` (`FOLIO-001`),
+/// `repofolio-core` — distinct from `crate::ParseError` (`FOLIO-003`),
 /// since a manifest that parses can still fail validation.
 ///
 /// `errors` holds one entry per schema violation, not one entry for the

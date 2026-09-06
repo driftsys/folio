@@ -15,10 +15,9 @@ use serde_json::Value;
 
 use crate::discover::ManifestFormat;
 
-/// Manifest parse failure. Maps to `FOLIO-001` (manifest missing or
-/// unparseable) once diagnostic codes are assigned in `repofolio-core` —
-/// the same code as `crate::DiscoverError`, since both mean "there is no
-/// usable manifest to validate."
+/// Manifest parse failure. Maps to `FOLIO-003` (manifest unparseable) —
+/// distinct from `crate::DiscoverError`'s `FOLIO-001` (manifest missing),
+/// since discovery and parse failures are different codes.
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
     #[error("failed to read manifest at {path}: {source}", path = path.display())]

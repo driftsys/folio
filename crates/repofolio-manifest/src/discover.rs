@@ -42,8 +42,7 @@ pub struct ManifestPath {
     pub format: ManifestFormat,
 }
 
-/// Manifest discovery failure. Maps to `FOLIO-001` (manifest missing or
-/// unparseable) once diagnostic codes are assigned in `repofolio-core`.
+/// Manifest discovery failure. Maps to `FOLIO-001` (manifest missing).
 #[derive(Debug, thiserror::Error)]
 pub enum DiscoverError {
     #[error(

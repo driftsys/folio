@@ -1,12 +1,13 @@
 //! FOLIO- rule registry — M1 check-plan step 7
 //! (docs/wip/2026-09-06-m1-check-plan.md).
 //!
-//! Four codes, and four codes only:
+//! Five codes, and five codes only:
 //!
 //! | Code | Severity | Rule |
 //! | --- | --- | --- |
-//! | `FOLIO-001` | error | Manifest missing or unparseable |
+//! | `FOLIO-001` | error | Manifest missing |
 //! | `FOLIO-002` | error (`info` when skipped) | Manifest fails the bundled schema |
+//! | `FOLIO-003` | error | Manifest unparseable |
 //! | `FOLIO-101` | error | Required path missing, per active layer |
 //! | `FOLIO-102` | warning | Recommended path missing, per active layer |
 //!
@@ -15,12 +16,12 @@
 //! `FOLIO-101`. That is why `repofolio_ecosystem()`'s `markers.must` does
 //! not list a manifest filename.
 //!
-//! `FOLIO-002` has nothing to validate once `FOLIO-001` has already
-//! failed (there is no parsed value), so it is reported at severity
-//! `Info` with a message saying it was skipped and why, rather than
-//! silently omitted or reported as a second failure — see
-//! [`skipped_schema_diagnostic`]. This is a recorded ruling, not a choice:
-//! `Severity` stays exactly error/warning/info.
+//! `FOLIO-002` has nothing to validate once `FOLIO-001` or `FOLIO-003`
+//! has already failed (there is no parsed value), so it is reported at
+//! severity `Info` with a message naming whichever of the two codes
+//! caused the skip, rather than silently omitted or reported as a second
+//! failure — see [`skipped_schema_diagnostic`]. This is a recorded
+//! ruling, not a choice: `Severity` stays exactly error/warning/info.
 
 use std::path::Path;
 
@@ -31,6 +32,7 @@ use crate::report::{Diagnostic, Location, Severity};
 
 const FOLIO_001: &str = "FOLIO-001";
 const FOLIO_002: &str = "FOLIO-002";
+const FOLIO_003: &str = "FOLIO-003";
 const FOLIO_101: &str = "FOLIO-101";
 const FOLIO_102: &str = "FOLIO-102";
 
@@ -39,19 +41,19 @@ const FOLIO_102: &str = "FOLIO-102";
 /// would scaffold stands in.
 const CANONICAL_MANIFEST_NAME: &str = "project.toml";
 
-/// Runs `FOLIO-001` (discover + parse) and `FOLIO-002` (schema
-/// validation) against the manifest at `repo_root`. Implements the
-/// discover -> parse -> validate pipeline stages (step 8): every failure
-/// becomes a diagnostic rather than an early return, so the caller can
-/// always continue to the later pipeline stages regardless of what
-/// happened here.
+/// Runs `FOLIO-001`/`FOLIO-003` (discover + parse) and `FOLIO-002`
+/// (schema validation) against the manifest at `repo_root`. Implements
+/// the discover -> parse -> validate pipeline stages (step 8): every
+/// failure becomes a diagnostic rather than an early return, so the
+/// caller can always continue to the later pipeline stages regardless of
+/// what happened here.
 pub fn manifest_rules(repo_root: &Path) -> Vec<Diagnostic> {
     let manifest_path = match discover_manifest(repo_root) {
         Ok(found) => found,
         Err(err) => {
             return vec![
-                manifest_error(CANONICAL_MANIFEST_NAME, err.to_string()),
-                skipped_schema_diagnostic(CANONICAL_MANIFEST_NAME),
+                manifest_error(FOLIO_001, CANONICAL_MANIFEST_NAME, err.to_string()),
+                skipped_schema_diagnostic(FOLIO_001, CANONICAL_MANIFEST_NAME),
             ];
         }
     };
@@ -66,8 +68,8 @@ pub fn manifest_rules(repo_root: &Path) -> Vec<Diagnostic> {
         Ok(value) => value,
         Err(err) => {
             return vec![
-                manifest_error(&file_name, err.to_string()),
-                skipped_schema_diagnostic(&file_name),
+                manifest_error(FOLIO_003, &file_name, err.to_string()),
+                skipped_schema_diagnostic(FOLIO_003, &file_name),
             ];
         }
     };
@@ -88,23 +90,27 @@ pub fn manifest_rules(repo_root: &Path) -> Vec<Diagnostic> {
     }
 }
 
-fn manifest_error(file_name: &str, message: String) -> Diagnostic {
+/// Builds the manifest-failure diagnostic for `code` — `FOLIO-001` when
+/// the manifest could not be discovered at all, `FOLIO-003` when it was
+/// found but failed to parse.
+fn manifest_error(code: &str, file_name: &str, message: String) -> Diagnostic {
     Diagnostic {
         severity: Severity::Error,
-        code: FOLIO_001.to_string(),
+        code: code.to_string(),
         message,
         layer: None,
         location: Location::file(file_name.to_string()),
     }
 }
 
-/// `FOLIO-002` reported as skipped: severity `Info`, since `FOLIO-001`
-/// has already failed and there is no parsed manifest left to validate.
-fn skipped_schema_diagnostic(file_name: &str) -> Diagnostic {
+/// `FOLIO-002` reported as skipped: severity `Info`, since `reason_code`
+/// (`FOLIO-001` or `FOLIO-003`) has already failed and there is no parsed
+/// manifest left to validate.
+fn skipped_schema_diagnostic(reason_code: &str, file_name: &str) -> Diagnostic {
     Diagnostic {
         severity: Severity::Info,
         code: FOLIO_002.to_string(),
-        message: "skipped: FOLIO-001 already failed, nothing to validate".to_string(),
+        message: format!("skipped: {reason_code} already failed, nothing to validate"),
         layer: None,
         location: Location::file(file_name.to_string()),
     }
@@ -208,7 +214,7 @@ mod tests {
         MarkerSpec::AnyOf(paths.iter().map(|s| s.to_string()).collect())
     }
 
-    // FOLIO-001 / FOLIO-002 -------------------------------------------
+    // FOLIO-001 / FOLIO-003 / FOLIO-002 --------------------------------
 
     #[test]
     fn folio_001_fires_when_the_manifest_is_missing_and_folio_002_is_skipped() {
@@ -224,21 +230,23 @@ mod tests {
         assert_eq!(diagnostics[1].code, "FOLIO-002");
         assert_eq!(diagnostics[1].severity, Severity::Info);
         assert!(diagnostics[1].message.contains("skipped"));
+        assert!(diagnostics[1].message.contains("FOLIO-001"));
     }
 
     #[test]
-    fn folio_001_fires_when_the_manifest_is_unparseable_and_folio_002_is_skipped() {
+    fn folio_003_fires_when_the_manifest_is_unparseable_and_folio_002_is_skipped() {
         let temp = tempfile::tempdir().expect("create temp dir");
         fs::write(temp.path().join("project.toml"), "name = \n").unwrap();
 
         let diagnostics = manifest_rules(temp.path());
 
         assert_eq!(diagnostics.len(), 2);
-        assert_eq!(diagnostics[0].code, "FOLIO-001");
+        assert_eq!(diagnostics[0].code, "FOLIO-003");
         assert_eq!(diagnostics[0].severity, Severity::Error);
         assert_eq!(diagnostics[0].location.file, "project.toml");
         assert_eq!(diagnostics[1].code, "FOLIO-002");
         assert_eq!(diagnostics[1].severity, Severity::Info);
+        assert!(diagnostics[1].message.contains("FOLIO-003"));
     }
 
     #[test]
