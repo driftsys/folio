@@ -11,8 +11,13 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 clap.workspace = true
+anyhow.workspace = true
 repofolio-core.workspace = true
 repofolio-manifest.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+snapbox.workspace = true
 
 [[bin]]
 name = "folio"

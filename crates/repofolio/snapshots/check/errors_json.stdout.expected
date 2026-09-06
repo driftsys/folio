@@ -1,0 +1,19 @@
+{
+  "count": 1,
+  "bySeverity": {
+    "error": 1,
+    "warning": 0,
+    "info": 0
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "FOLIO-101",
+      "message": "required path missing: LICENSE",
+      "layer": "repofolio",
+      "location": {
+        "file": "LICENSE"
+      }
+    }
+  ]
+}

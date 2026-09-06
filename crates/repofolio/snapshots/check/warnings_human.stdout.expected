@@ -1,0 +1,6 @@
+warning FOLIO-102 Foliofile: recommended path missing: Foliofile
+warning FOLIO-102 CHANGELOG.md: recommended path missing: CHANGELOG.md
+warning FOLIO-102 CODEOWNERS: recommended path missing: CODEOWNERS
+warning FOLIO-102 CONTRIBUTING.md: recommended path missing: CONTRIBUTING.md
+warning FOLIO-102 .githooks/: recommended path missing: .githooks/
+5 findings (0 errors, 5 warnings, 0 info)
