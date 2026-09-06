@@ -97,10 +97,22 @@ fn manifest_error(code: &str, file_name: &str, message: String) -> Diagnostic {
     Diagnostic {
         severity: Severity::Error,
         code: code.to_string(),
-        message,
+        message: single_line(message),
         layer: None,
         location: Location::file(file_name.to_string()),
     }
+}
+
+/// Collapses a message onto one line, joining any internal whitespace
+/// runs (including newlines) with a single space. `toml_edit::de::Error`'s
+/// `Display` is a multi-line, pretty-printed diagnostic (a source snippet
+/// plus a caret line), and it flows unchanged into `ParseError::Toml`'s
+/// message — without this, a single malformed-TOML finding would print
+/// as several lines, breaking `print_human`'s one-line-per-finding
+/// design and leaving the printed line count disagreeing with
+/// `report.count`.
+fn single_line(message: String) -> String {
+    message.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// `FOLIO-002` reported as skipped: severity `Info`, since `reason_code`
@@ -244,6 +256,15 @@ mod tests {
         assert_eq!(diagnostics[0].code, "FOLIO-003");
         assert_eq!(diagnostics[0].severity, Severity::Error);
         assert_eq!(diagnostics[0].location.file, "project.toml");
+        // toml_edit's parse-error Display is a multi-line, pretty-printed
+        // diagnostic (a source snippet plus a caret line); the message
+        // must collapse it to one line so `print_human` prints exactly
+        // one line per finding.
+        assert!(
+            !diagnostics[0].message.contains('\n'),
+            "message contains an embedded newline: {:?}",
+            diagnostics[0].message
+        );
         assert_eq!(diagnostics[1].code, "FOLIO-002");
         assert_eq!(diagnostics[1].severity, Severity::Info);
         assert!(diagnostics[1].message.contains("FOLIO-003"));
