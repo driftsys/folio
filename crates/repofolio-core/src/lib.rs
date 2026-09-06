@@ -9,6 +9,7 @@
 
 mod ecosystem;
 mod pipeline;
+mod registry;
 mod report;
 mod rules;
 
@@ -17,5 +18,6 @@ pub use ecosystem::{
     MarkerSpec, Markers,
 };
 pub use pipeline::check;
+pub use registry::{code_registry, ecosystem_registry, CodeEntry, Registry};
 pub use report::{BySeverity, Diagnostic, Location, Report, Severity};
 pub use rules::{manifest_rules, path_rules};

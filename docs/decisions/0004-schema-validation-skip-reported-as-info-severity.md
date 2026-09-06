@@ -46,4 +46,8 @@ to a type frozen at v1.0.
 
 `crates/repofolio-core/src/report.rs` (`Severity`);
 `crates/repofolio-core/src/rules.rs` (`skipped_schema_diagnostic`,
-`manifest_rules`); `docs/specification/folio-check.md` (`FOLIO-002` row).
+`manifest_rules`); `crates/repofolio-core/src/registry.rs`
+(`code_registry`'s `FOLIO-002` entry lists `Severity::Error` as the
+code's nominal severity, per this decision, not the variable skip
+outcome); `docs/specification/folio-check.md` (`FOLIO-002` row);
+`docs/specification/folio-registry.md` (`FOLIO-002` entry).

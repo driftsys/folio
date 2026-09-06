@@ -15,7 +15,7 @@ use std::process::ExitCode;
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
 
-use repofolio_core::{check, Location, Report, Severity};
+use repofolio_core::{check, Location, Registry, Report, Severity};
 
 #[derive(Parser)]
 #[command(
@@ -39,11 +39,26 @@ enum Command {
         #[arg(long, value_enum, default_value = "human")]
         format: Format,
     },
+
+    /// Dump the FOLIO- diagnostic code registry and the ecosystem
+    /// registry as one document: the tool-contract clause CLAUDE.md
+    /// requires of every orchestrated tool, folio included.
+    Registry {
+        /// Output format. Only `json` exists — a registry dump is
+        /// consumed by agents and MCP, not read as prose.
+        #[arg(long, value_enum, default_value = "json")]
+        format: RegistryFormat,
+    },
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
 enum Format {
     Human,
+    Json,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
+enum RegistryFormat {
     Json,
 }
 
@@ -62,6 +77,7 @@ fn run() -> Result<ExitCode> {
 
     match cli.command {
         Command::Check { path, format } => run_check(path, format),
+        Command::Registry { format } => run_registry(format),
     }
 }
 
@@ -95,6 +111,25 @@ fn run_check(path: Option<PathBuf>, format: Format) -> Result<ExitCode> {
     } else {
         Ok(ExitCode::from(0))
     }
+}
+
+/// Dumps the `FOLIO-` code registry and the ecosystem registry as one
+/// JSON document. Always exits 0 — a registry dump describes what
+/// exists, so unlike `check` there is no finding to grade an exit
+/// status from; a serialization failure would be an internal error
+/// (the `Result`-based `Err` path in `main`), not a usage failure.
+fn run_registry(format: RegistryFormat) -> Result<ExitCode> {
+    let registry = Registry::new();
+
+    match format {
+        RegistryFormat::Json => {
+            let json = serde_json::to_string_pretty(&registry)
+                .context("failed to serialize the registry as JSON")?;
+            println!("{json}");
+        }
+    }
+
+    Ok(ExitCode::from(0))
 }
 
 /// The default, human-readable report: one line per finding, then a

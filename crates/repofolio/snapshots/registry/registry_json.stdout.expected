@@ -1,0 +1,78 @@
+{
+  "codes": [
+    {
+      "code": "FOLIO-001",
+      "severity": "error",
+      "description": "Manifest missing: none of project.toml, project.yaml, or project.json exists at the repository root."
+    },
+    {
+      "code": "FOLIO-002",
+      "severity": "error",
+      "description": "Manifest parses but fails the bundled schema. Reported at info severity, with a message naming the reason, when FOLIO-001 or FOLIO-003 has already failed and there is nothing to validate."
+    },
+    {
+      "code": "FOLIO-003",
+      "severity": "error",
+      "description": "A manifest file was found but is unreadable or fails to parse in its own format (malformed TOML, unparseable YAML, malformed JSON)."
+    },
+    {
+      "code": "FOLIO-101",
+      "severity": "error",
+      "description": "A required path for an active layer is absent from the repository."
+    },
+    {
+      "code": "FOLIO-102",
+      "severity": "warning",
+      "description": "A recommended path for an active layer is absent from the repository."
+    }
+  ],
+  "ecosystems": [
+    {
+      "ecosystem": {
+        "name": "repofolio",
+        "version": 1
+      },
+      "markers": {
+        "must": [
+          "README.md",
+          "LICENSE",
+          "bootstrap",
+          "runw",
+          ".gitignore",
+          ".gitattributes",
+          ".editorconfig",
+          "docs/",
+          "scripts/"
+        ],
+        "should": [
+          "Foliofile",
+          "CHANGELOG.md",
+          "CODEOWNERS",
+          "CONTRIBUTING.md",
+          ".githooks/"
+        ]
+      },
+      "commands": {}
+    },
+    {
+      "ecosystem": {
+        "name": "rust",
+        "version": 1
+      },
+      "markers": {
+        "must": [
+          "Cargo.toml",
+          "Cargo.lock"
+        ],
+        "should": [
+          "rust-toolchain.toml",
+          [
+            "rustfmt.toml",
+            ".rustfmt.toml"
+          ]
+        ]
+      },
+      "commands": {}
+    }
+  ]
+}
