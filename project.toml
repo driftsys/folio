@@ -1,0 +1,12 @@
+#:schema https://driftsys.github.io/schemas/project/v1.json
+
+name = "io.driftsys.folio"
+version = "0.1.0"
+category = ["tool", "binary"]
+description = "Reference CLI implementation of the Repofolio standard"
+license = "Apache-2.0"
+keywords = ["repofolio", "conformance", "manifest", "ecosystem"]
+authors = ["driftsys"]
+homepage = "https://github.com/driftsys/folio"
+bugs = "https://github.com/driftsys/folio/issues"
+repository = "https://github.com/driftsys/folio"
