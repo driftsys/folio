@@ -352,6 +352,45 @@ pub fn detect_rust(repo_root: &Path) -> bool {
 mod tests {
     use super::*;
 
+    /// Set to any non-empty value to require the sibling
+    /// `driftsys/repofolio` checkout: with it set, a missing checkout
+    /// fails `deserializes_the_real_rust_scaffold_file_from_the_sibling_checkout`
+    /// rather than skipping it, so a CI job that is supposed to have the
+    /// sibling checked out catches a misconfiguration instead of that
+    /// test quietly asserting nothing. Unset (the default), a missing
+    /// checkout still skips, so local development without the sibling
+    /// checkout works.
+    const FOLIO_STRICT_PARITY: &str = "FOLIO_STRICT_PARITY";
+
+    /// Pure decision logic for the constant above, factored out of
+    /// [`strict_parity_required`] so [`strict_parity_toggles_skip_vs_fail`]
+    /// can exercise both branches directly without mutating the process
+    /// environment (which would race
+    /// `deserializes_the_real_rust_scaffold_file_from_the_sibling_checkout`'s
+    /// own read of the same variable under parallel test execution).
+    fn strict_parity_from(value: Option<&str>) -> bool {
+        value.is_some_and(|v| !v.is_empty())
+    }
+
+    fn strict_parity_required() -> bool {
+        strict_parity_from(std::env::var(FOLIO_STRICT_PARITY).ok().as_deref())
+    }
+
+    /// Exercises both branches of the gating decision
+    /// `deserializes_the_real_rust_scaffold_file_from_the_sibling_checkout`
+    /// uses when the sibling checkout is absent: unset (or empty) skips,
+    /// any non-empty value fails. Testing the pure predicate this way
+    /// pins both branches without requiring the sibling checkout to
+    /// actually be removed from this machine to observe the fail branch.
+    #[test]
+    fn strict_parity_toggles_skip_vs_fail() {
+        assert!(!strict_parity_from(None));
+        assert!(!strict_parity_from(Some("")));
+        assert!(strict_parity_from(Some("1")));
+        assert!(strict_parity_from(Some("0")));
+        assert!(strict_parity_from(Some("false")));
+    }
+
     #[test]
     fn repofolio_is_always_active_with_no_commands() {
         let ecosystem = repofolio_ecosystem();
@@ -615,13 +654,21 @@ version = 1
     /// changes upstream, since it reads the file itself rather than a
     /// literal frozen at the time this test was written. Skips (rather
     /// than failing) when the sibling `driftsys/repofolio` checkout is
-    /// not present, e.g. a CI clone of only this repository.
+    /// not present, e.g. a CI clone of only this repository — unless
+    /// `FOLIO_STRICT_PARITY` is set, in which case a missing checkout
+    /// fails this test instead (see the constant's doc comment above).
     #[test]
     fn deserializes_the_real_rust_scaffold_file_from_the_sibling_checkout() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../repofolio/ecosystems/rust/folio.ecosystem.toml");
 
         if !path.is_file() {
+            assert!(
+                !strict_parity_required(),
+                "{FOLIO_STRICT_PARITY} is set and the sibling driftsys/repofolio checkout \
+                 was not found at {}",
+                path.display()
+            );
             eprintln!(
                 "skipping: sibling driftsys/repofolio checkout not found at {}",
                 path.display()
