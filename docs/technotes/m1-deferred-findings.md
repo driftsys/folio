@@ -209,6 +209,33 @@ up.
     site without updating the registry, `folio check` and
     `folio registry` would silently disagree about that code — not
     covered by finding 17, which is scoped to the ecosystem half only.
+25. **An empty manifest reports a different code family depending on
+    which serialization format was chosen** (`crates/repofolio-manifest/
+    src/parse.rs`). Confirmed by building and running `folio check`
+    against each: an empty `project.toml` parses to `Object({})` (valid
+    TOML — an empty document is an empty table) and reports `FOLIO-002`
+    (missing `name`/`version`); an empty `project.yaml` parses to `Null`
+    (valid YAML) and also reports `FOLIO-002`, with a different message;
+    an empty `project.json` is not valid JSON at all and reports
+    `FOLIO-003` instead, with `FOLIO-002` downgraded to skipped. This
+    contradicts `docs/specification/folio-check.md`'s "each format
+    parses to the same canonical value" framing for this one degenerate
+    case. Not obviously a bug to fix rather than a genuine per-format
+    grammar difference — TOML and YAML both have a legitimate "empty
+    means empty-but-present" reading that JSON's grammar does not allow
+    — so this is recorded as a design question (which behavior should be
+    canonical) rather than assigned a fix.
+26. **The JSON manifest branch has no guard against an integer literal
+    too large for exact `f64` representation, unlike the TOML branch
+    (which hard-errors) and the YAML branch (hardened by this same
+    milestone)** (`crates/repofolio-manifest/src/parse.rs`,
+    `serde_json::from_str::<Value>`). Confirmed empirically: a
+    `metadata` value like `123456789012345678901` parses silently to an
+    approximated `f64`, passes schema validation (`metadata` allows any
+    properties), and produces no diagnostic — while the identical
+    literal in TOML hard-errors ("number too large to fit in target
+    type"). Same class of cross-format inconsistency as findings 8/21/22,
+    through the JSON path specifically, which those did not cover.
 
 ## Process note: three false-pass incidents
 

@@ -20,10 +20,13 @@ use repofolio_core::{check, BySeverity, Severity};
 /// `compliant` and `partial` each need a real `Cargo.toml` at their root
 /// to activate the `rust` ecosystem layer under test — and a `Cargo.toml`
 /// checked in at that path would make `cargo package` silently drop the
-/// entire fixture directory as a nested package (see the `include`
-/// comment in `Cargo.toml`). The checked-in fixture instead carries it as
-/// `Cargo.toml.fixture`; this restores the real name in the copy so
-/// `check()` sees exactly the tree a real repository would have.
+/// entire fixture directory as a nested package, since cargo treats any
+/// directory containing a `Cargo.toml` as its own package and excludes
+/// it (this is what `cargo package --list -p repofolio-core` confirms;
+/// an `include` directive cannot override it, see commit c632564). The
+/// checked-in fixture instead carries it as `Cargo.toml.fixture`; this
+/// restores the real name in the copy so `check()` sees exactly the
+/// tree a real repository would have.
 fn materialize_fixture(name: &str) -> (tempfile::TempDir, PathBuf) {
     let source = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures")
