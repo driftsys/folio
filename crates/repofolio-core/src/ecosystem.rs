@@ -75,9 +75,12 @@
 //!   real scaffold file, for the same reason as `markers`.
 //!
 //! M1 populates two instances by hand — `repofolio` (always active) and
-//! `rust` (activated by a root `Cargo.toml` declaring `[workspace]`) —
-//! with empty `markers` and `commands`. Step 7 fills in the required and
-//! recommended paths; this step only fixes the shape.
+//! `rust` (activated by a root `Cargo.toml` declaring `[workspace]`).
+//! Step 6 shaped both with empty `markers` and `commands`; step 7
+//! (docs/wip/2026-09-06-m1-check-plan.md) fills in `markers` with the
+//! required and recommended path lists that back `FOLIO-101`/`FOLIO-102`.
+//! `commands` stays empty — no milestone through M1 wires ecosystem
+//! commands.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -134,10 +137,18 @@ pub struct EcosystemMeta {
 
 /// Paths that give both ecosystem detection and the `FOLIO-101`
 /// (required) / `FOLIO-102` (recommended) conformance rules (Part 6 of
-/// the task-model design). Empty for both M1 instances — `rust`'s
-/// activation rule is the dedicated `[workspace]` content check below,
-/// not marker presence, and step 7 is where the required/recommended
-/// path lists themselves are added.
+/// the task-model design). `rust`'s own activation rule is the dedicated
+/// `[workspace]` content check below, not marker presence — these lists
+/// exist for the conformance rules alone.
+///
+/// A path spec is normally a bare path (`"README.md"`). It may instead
+/// join several acceptable spellings with the literal separator `" or "`
+/// (`"rustfmt.toml or .rustfmt.toml"`); the rule that reads this list
+/// (`repofolio_core::rules::path_rules`, step 7 of
+/// docs/wip/2026-09-06-m1-check-plan.md) treats such a group as satisfied
+/// when any one alternative is present, and reports a missing group as a
+/// single finding naming the full spec text — never one finding per
+/// alternative.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Markers {
     #[serde(default)]
@@ -176,6 +187,12 @@ impl Default for Commands {
 
 /// The `repofolio` ecosystem: always active, no marker to detect. Not
 /// loaded from any `folio.ecosystem.toml` file, so `schema` is `None`.
+///
+/// `markers` carries the core-layer conformance list
+/// (docs/wip/2026-09-06-m1-check-plan.md step 7). Manifest presence is
+/// deliberately absent from `must`: that fact belongs to `FOLIO-001`
+/// alone, so a repository with no manifest does not also report it as a
+/// missing `FOLIO-101` path.
 pub fn repofolio_ecosystem() -> Ecosystem {
     Ecosystem {
         schema: None,
@@ -184,7 +201,26 @@ pub fn repofolio_ecosystem() -> Ecosystem {
             version: 1,
         },
         always: true,
-        markers: Markers::default(),
+        markers: Markers {
+            must: vec![
+                "README.md".to_string(),
+                "LICENSE".to_string(),
+                "bootstrap".to_string(),
+                "runw".to_string(),
+                ".gitignore".to_string(),
+                ".gitattributes".to_string(),
+                ".editorconfig".to_string(),
+                "docs/".to_string(),
+                "scripts/".to_string(),
+            ],
+            should: vec![
+                "Foliofile".to_string(),
+                "CHANGELOG.md".to_string(),
+                "CODEOWNERS".to_string(),
+                "CONTRIBUTING.md".to_string(),
+                ".githooks/".to_string(),
+            ],
+        },
         commands: Commands::default(),
     }
 }
@@ -192,6 +228,12 @@ pub fn repofolio_ecosystem() -> Ecosystem {
 /// The `rust` ecosystem: not always active, detected by
 /// [`detect_rust`]. Not loaded from any `folio.ecosystem.toml` file, so
 /// `schema` is `None`.
+///
+/// `markers` carries the `rust`-layer conformance list
+/// (docs/wip/2026-09-06-m1-check-plan.md step 7). The recommended
+/// `rustfmt.toml`/`.rustfmt.toml` spellings are one alternate-group entry
+/// joined by `" or "`, not two independent entries — see the `Markers`
+/// doc comment.
 pub fn rust_ecosystem() -> Ecosystem {
     Ecosystem {
         schema: None,
@@ -200,7 +242,13 @@ pub fn rust_ecosystem() -> Ecosystem {
             version: 1,
         },
         always: false,
-        markers: Markers::default(),
+        markers: Markers {
+            must: vec!["Cargo.toml".to_string(), "Cargo.lock".to_string()],
+            should: vec![
+                "rust-toolchain.toml".to_string(),
+                "rustfmt.toml or .rustfmt.toml".to_string(),
+            ],
+        },
         commands: Commands::default(),
     }
 }
@@ -230,13 +278,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn repofolio_is_always_active_with_no_markers() {
+    fn repofolio_is_always_active_with_no_commands() {
         let ecosystem = repofolio_ecosystem();
 
         assert_eq!(ecosystem.ecosystem.name, "repofolio");
         assert!(ecosystem.always);
-        assert_eq!(ecosystem.markers, Markers::default());
         assert_eq!(ecosystem.commands, Commands::default());
+    }
+
+    /// Pins the exact required/recommended path lists
+    /// (docs/wip/2026-09-06-m1-check-plan.md step 7). Manifest presence
+    /// is deliberately absent from `must` — that belongs to `FOLIO-001`
+    /// alone.
+    #[test]
+    fn repofolio_markers_match_the_step_7_conformance_list() {
+        let ecosystem = repofolio_ecosystem();
+
+        assert_eq!(
+            ecosystem.markers.must,
+            vec![
+                "README.md".to_string(),
+                "LICENSE".to_string(),
+                "bootstrap".to_string(),
+                "runw".to_string(),
+                ".gitignore".to_string(),
+                ".gitattributes".to_string(),
+                ".editorconfig".to_string(),
+                "docs/".to_string(),
+                "scripts/".to_string(),
+            ]
+        );
+        assert_eq!(
+            ecosystem.markers.should,
+            vec![
+                "Foliofile".to_string(),
+                "CHANGELOG.md".to_string(),
+                "CODEOWNERS".to_string(),
+                "CONTRIBUTING.md".to_string(),
+                ".githooks/".to_string(),
+            ]
+        );
     }
 
     #[test]
@@ -245,6 +326,27 @@ mod tests {
 
         assert_eq!(ecosystem.ecosystem.name, "rust");
         assert!(!ecosystem.always);
+    }
+
+    /// Pins the `rust`-layer required/recommended path list. The
+    /// recommended `rustfmt.toml`/`.rustfmt.toml` spellings are one
+    /// alternate-group entry joined by `" or "`, not two independent
+    /// entries.
+    #[test]
+    fn rust_markers_match_the_step_7_conformance_list() {
+        let ecosystem = rust_ecosystem();
+
+        assert_eq!(
+            ecosystem.markers.must,
+            vec!["Cargo.toml".to_string(), "Cargo.lock".to_string()]
+        );
+        assert_eq!(
+            ecosystem.markers.should,
+            vec![
+                "rust-toolchain.toml".to_string(),
+                "rustfmt.toml or .rustfmt.toml".to_string(),
+            ]
+        );
     }
 
     #[test]

@@ -7,6 +7,7 @@ repository.workspace = true
 description = "Conformance check engine and FOLIO- rule registry for the Repofolio standard"
 
 [dependencies]
+repofolio-manifest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
