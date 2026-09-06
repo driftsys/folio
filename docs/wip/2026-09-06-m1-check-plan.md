@@ -12,7 +12,7 @@ stable diagnostic codes.
 
 ## Scope
 
-Three crates only: `folio-manifest`, `folio-core`, `folio-cli`.
+Three crates only: `repofolio-manifest`, `repofolio-core`, `repofolio`.
 
 Also in scope, approved separately because they fall outside those crates:
 workspace `Cargo.toml` dependency entries, fixtures copied into crate test
@@ -47,7 +47,7 @@ To `[workspace.dependencies]`:
 | --- | --- |
 | `jsonschema` | draft-07 validation of the manifest |
 | `yaml-rust2` | YAML parsing to an abstract syntax tree, converted to `serde_json::Value` |
-| `anyhow` | error handling in `folio-cli` only |
+| `anyhow` | error handling in `repofolio` (the front end) only |
 | `snapbox` or `assert_cmd` (dev) | command-line acceptance tests |
 
 `toml_edit` gains its `serde` feature. `serde`, `serde_json` and
@@ -81,7 +81,7 @@ root, in that order.
 ### 3. Bundled schema and validation
 
 Copy `driftsys/schemas/project/v1.json` byte-identically to
-`crates/folio-manifest/schema/project-v1.json`, embed it with
+`crates/repofolio-manifest/schema/project-v1.json`, embed it with
 `include_str!`, and validate with `jsonschema`.
 
 - Verify: the four schema test cases already in `driftsys/schemas`
@@ -197,6 +197,7 @@ than fix it silently.
    and nothing expresses one. `repofolio`'s own manifest produces two
    genuine FOLIO-002 failures, so the gate cannot be met as written.
    Decide at the dogfood gate.
-2. **Crate rename.** `folio-cli` and `folio-core` are taken on crates.io.
-   If the workspace moves to the `repofolio-*` namespace, it should happen
-   before the names spread further. Outside the three crates in scope.
+2. **Crate rename — resolved 2026-09-06 in commit 441005c.** `folio-cli`
+   and `folio-core` were already taken on crates.io, so the workspace moved
+   to the `repofolio-*` namespace. The front-end crate took the bare name
+   `repofolio` and still builds a binary named `folio`.

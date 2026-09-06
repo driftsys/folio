@@ -22,3 +22,11 @@ serde_json = "1"
 toml_edit = "0.22"
 thiserror = "1"
 clap = { version = "4", features = ["derive"] }
+
+# Internal crates. The version literal is unavoidable — Cargo cannot inherit
+# workspace.package.version into a dependency requirement — but keeping the
+# declarations here means one place to update, and gives `git std bump` a
+# single regex target via [[version_files]] when folio adopts it at v0.5.
+# Same pattern as driftsys/git-std.
+repofolio-core = { version = "0.1.0", path = "crates/repofolio-core" }
+repofolio-manifest = { version = "0.1.0", path = "crates/repofolio-manifest" }

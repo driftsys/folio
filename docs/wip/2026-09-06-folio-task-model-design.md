@@ -103,7 +103,7 @@ check` always means the recipe.
 ```text
 build                          all ecosystems (fan-out)
 rust::build                    one ecosystem
-rust::folio-manifest::build    one module
+rust::repofolio-manifest::build  one module
 rust::*::build                 glob at segment level
 folio::build                   the unshadowable built-in
 ```
@@ -118,9 +118,9 @@ segment     = identifier / "*"
 ### Why `::` and not `-` or `:`
 
 - `-` is a legal identifier character (grammar 4.3), so it cannot separate
-  segments. `rust-folio-manifest-build` is ambiguous: this workspace's own
-  crate names (`folio-manifest`, `standard-version`) make the ambiguity
-  concrete, not hypothetical.
+  segments. `rust-repofolio-manifest-build` is ambiguous: this workspace's
+  own crate names (`repofolio-manifest`, `repofolio-templates`) make the
+  ambiguity concrete, not hypothetical.
 - A single `:` is `just`'s dependency separator. `just` treats `rust : build`
   and `rust:build` identically, so folio could not distinguish a qualified
   name from a recipe with a dependency when reading an existing justfile.
@@ -478,7 +478,7 @@ survive that check and are corrected here.
 | MCP (v0.6) | `rmcp` | feature-gated; the only sanctioned tokio usage |
 | LSP (v0.8) | `lsp-server` | see correction 3 |
 | SARIF | `serde-sarif` | when SARIF output lands |
-| Errors | `thiserror` in libraries, `anyhow` in `folio-cli` | |
+| Errors | `thiserror` in libraries, `anyhow` in `repofolio` | |
 | CLI acceptance tests | `snapbox`, `trycmd`, `assert_cmd` | same set `git-std/spec` already uses |
 
 ### Correction 1 — `jsonschema`, not `boon`
@@ -594,13 +594,17 @@ binary:      folio
 ```
 
 Crate name and binary name are independent, so a crate published as
-`repofolio-cli` still installs a binary named `folio`, in the same way
+`repofolio` still installs a binary named `folio`, in the same way
 that `cargo install ripgrep` installs `rg`. This also makes ADR 0003's
 warning — distinguish "Repofolio" the standard from "folio" the CLI —
 structural rather than a matter of documentation discipline.
 
 Two mitigations are already in the plan: `cargo install` is demoted to
 unsupported convenience in favour of release assets, and the canonical
-install path is a checksummed per-platform asset. If folio is never
-published to crates.io the conflict is inert, but `folio-cli` should be
-renamed before the name spreads further through the workspace.
+install path is a checksummed per-platform asset.
+
+**Applied 2026-09-06 in commit 441005c.** Every crate moved to the
+`repofolio-*` namespace, and the front-end crate took the bare name
+`repofolio` rather than `repofolio-cli`, so that the name users install is
+the headline one and no empty umbrella crate has to be published to hold
+it.

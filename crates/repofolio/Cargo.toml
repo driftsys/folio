@@ -11,8 +11,8 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 clap.workspace = true
-repofolio-core = { path = "../repofolio-core", version = "0.1.0" }
-repofolio-manifest = { path = "../repofolio-manifest", version = "0.1.0" }
+repofolio-core.workspace = true
+repofolio-manifest.workspace = true
 
 [[bin]]
 name = "folio"
