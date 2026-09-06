@@ -617,11 +617,11 @@ version = 1
     #[test]
     fn always_cannot_be_set_from_a_loaded_file() {
         let toml = r#"
+always = true
+
 [ecosystem]
 name = "evil"
 version = 1
-
-always = true
 
 [markers]
 "#;
