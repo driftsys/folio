@@ -56,6 +56,21 @@ To `[workspace.dependencies]`:
 See Part 10 of the design document for why `jsonschema` rather than `boon`,
 and `yaml-rust2` rather than any `serde_yaml` fork.
 
+## Review checkpoints
+
+Execution stops for human review at one point:
+
+**After step 6.** Steps 5 and 6 define the two types that v1.0 freezes — the
+`Report` shape, which must let SARIF be added later as a serialiser rather
+than as a breaking change to the JSON contract, and `Ecosystem`, which must
+mirror the `folio.ecosystem.toml` format so the v0.4 loader produces the
+same type through the same code path. Both will compile and pass their tests
+while being shaped wrong, so the automated gates cannot catch a bad shape
+here. Everything from step 7 onward builds on them.
+
+Steps 1-4 and 7-10 run continuously. Their failure modes are mechanical and
+the per-step verifications catch them.
+
 ## Steps
 
 Each step is test-first: write the failing test, then the implementation,
