@@ -45,6 +45,60 @@ up.
    `MarkerSpec` construction from outside the crate — the test still
    matches on `MarkerSpec`, so it is not vacuous, but it no longer
    demonstrates constructing one externally.
+8. **A TOML date/datetime literal under the manifest's freeform
+   `metadata` object does not parse to the same value as its YAML or JSON
+   equivalent** (`crates/repofolio-manifest/src/parse.rs`,
+   `parse_manifest`'s TOML branch). `toml_edit::de::from_str::<Value>`
+   deserializes a date/datetime into a private wrapper object
+   (`{"$__toml_private_datetime": "..."}`) rather than a plain string,
+   because `serde_json::Value` has no native date type; the equivalent
+   `project.yaml`/`project.json` manifest produces a plain string for the
+   same logical value. This breaks the "same manifest parses identically
+   across formats" invariant `same_logical_manifest_parses_identically_
+   across_formats` pins, for date-typed values specifically — that test
+   does not cover a date field today. `metadata` accepts any properties,
+   so this is reachable by any manifest author writing a bare date under
+   it. Fixing it needs a dedicated TOML-to-JSON conversion (mirroring
+   `parse.rs`'s existing hand-rolled `yaml_to_json`) that converts a TOML
+   datetime to a string explicitly, rather than deserializing generically
+   into `serde_json::Value`.
+9. **Two YAML mapping keys that stringify identically collide silently**
+   (`crates/repofolio-manifest/src/parse.rs`, `yaml_key_to_string`). A
+   non-string key (e.g. the integer `1`) is rendered through its JSON
+   form (`"1"`); a manifest with both an integer key `1` and a string key
+   `"1"` under `metadata` has one silently overwrite the other in the
+   resulting `serde_json::Map`, with no parse error.
+10. **`parse_yaml` silently drops every document after the first in a
+    multi-document YAML stream** (`crates/repofolio-manifest/src/parse.rs`,
+    `parse_yaml`'s `docs.remove(0)`). A `project.yaml` containing a stray
+    `---` separator has everything after it discarded rather than
+    rejected, so a malformed or accidentally-multi-document manifest
+    parses "successfully" with silently missing content.
+11. **`detect_rust`'s doc comment overstates its own check**
+    (`crates/repofolio-core/src/ecosystem.rs`). It says activation
+    requires a root `Cargo.toml` "declaring a `[workspace]` table", but
+    the implementation is `doc.contains_key("workspace")`, true for a
+    top-level `workspace` key of any TOML value type, not only a table.
+    Not reachable through a real repository today — `workspace = <scalar>`
+    is not valid Cargo syntax, so `cargo` itself would already reject such
+    a `Cargo.toml` — but the doc comment and the check disagree, and no
+    test covers "`workspace` key present with the wrong shape".
+12. **`MarkerSpec` marker paths are joined onto `repo_root` with no check
+    that they are relative** (`crates/repofolio-core/src/rules.rs`,
+    `marker_spec_exists`). `Path::join` silently discards `repo_root` when
+    given an absolute path, so an absolute marker path would be checked
+    against the host filesystem root instead of the repository being
+    scanned. Not reachable in M1 — both hardcoded ecosystems (`repofolio`,
+    `rust`) only ever use relative marker paths — but `MarkerSpec` derives
+    `Deserialize` specifically so the v0.4 ecosystem loader can feed it
+    marker paths from a third-party `folio.ecosystem.toml`, which is
+    exactly the untrusted-input case this becomes a real concern for.
+13. **The `FOLIO_STRICT_PARITY` gating pattern is duplicated verbatim**
+    between `crates/repofolio-core/src/ecosystem.rs` and
+    `crates/repofolio-manifest/tests/schema_parity.rs` (constant, reader,
+    predicate, and an identical `strict_parity_toggles_skip_vs_fail`
+    test in each). If the gating rule ever changes in one copy, there is
+    no compiler or test signal pointing at the other.
 
 ## Process note: three false-pass incidents
 
