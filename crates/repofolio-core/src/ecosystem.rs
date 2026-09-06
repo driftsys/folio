@@ -1,10 +1,16 @@
 //! Ecosystem registry — M1 check-plan step 6
 //! (docs/wip/2026-09-06-m1-check-plan.md).
 //!
-//! `Ecosystem` mirrors the on-disk `folio.ecosystem.toml` envelope
-//! described in Part 6 of `docs/wip/2026-09-06-folio-task-model-design.md`
-//! field for field, so the v0.4 ecosystem loader deserializes a file
-//! straight into this type with no translation layer:
+//! `Ecosystem` mirrors the v0.1 scaffold envelope of the on-disk
+//! `folio.ecosystem.toml` format described in Part 6 of
+//! `docs/wip/2026-09-06-folio-task-model-design.md` — `"$schema"`,
+//! `[ecosystem]`, `[markers]`, and `commands` — field for field, so the
+//! v0.4 ecosystem loader deserializes a file with only that shape
+//! straight into this type with no translation layer. It does not yet
+//! mirror every field Part 6 describes: `[[rules]]` and the future
+//! inputs/templates/patches/sections shape are not part of this type,
+//! which is exactly why the type is `#[non_exhaustive]` rather than
+//! frozen in its current field set.
 //!
 //! ```toml
 //! "$schema" = "https://driftsys.github.io/schemas/folio-ecosystem/v1.json"
@@ -91,6 +97,7 @@ use serde::{Deserialize, Serialize};
 /// One ecosystem: the core `repofolio` layer, or an ecosystem such as
 /// `rust` that only applies when detected in a repository.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Ecosystem {
     /// Mirrors the file's top-level `"$schema"` key. See the module
     /// doc comment for why this is carried rather than dropped.
@@ -128,6 +135,7 @@ pub struct Ecosystem {
 /// The `[ecosystem]` table: identity and file-format version, nested to
 /// match the on-disk envelope exactly (see the module doc comment).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct EcosystemMeta {
     pub name: String,
     /// The `folio.ecosystem.toml` format version, e.g. `1` — not a
@@ -141,6 +149,7 @@ pub struct EcosystemMeta {
 /// `[workspace]` content check below, not marker presence — these lists
 /// exist for the conformance rules alone.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Markers {
     #[serde(default)]
     pub must: Vec<MarkerSpec>,
@@ -180,6 +189,7 @@ pub struct Markers {
 /// finding per alternative.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum MarkerSpec {
     One(String),
     AnyOf(Vec<String>),
@@ -231,6 +241,7 @@ impl MarkerSpec {
 /// deeper `folio.ecosystem.toml` file, never a change to this enum.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum Commands {
     Command(String),
     Group(BTreeMap<String, Commands>),

@@ -11,25 +11,27 @@
 //! could name — `use repofolio_core::MarkerSpec` failed with E0432, and
 //! nothing outside the crate could construct one or match `One`/`AnyOf`
 //! by name.
+//!
+//! `Markers` is `#[non_exhaustive]`, so this file — compiled as an
+//! external crate — cannot build one with a struct expression the way an
+//! in-crate test can; it reads a real `Markers` off `rust_ecosystem()`'s
+//! public `Ecosystem` instead. `MarkerSpec` is also `#[non_exhaustive]`,
+//! so each match below needs a wildcard arm even though it already
+//! covers every current variant.
 
-use repofolio_core::{MarkerSpec, Markers};
+use repofolio_core::{rust_ecosystem, MarkerSpec};
 
 #[test]
 fn marker_spec_is_constructible_and_matchable_by_name_from_outside_the_crate() {
-    let markers = Markers {
-        must: vec![MarkerSpec::One("Cargo.toml".to_string())],
-        should: vec![MarkerSpec::AnyOf(vec![
-            "rustfmt.toml".to_string(),
-            ".rustfmt.toml".to_string(),
-        ])],
-    };
+    let ecosystem = rust_ecosystem();
 
-    match &markers.must[0] {
+    match &ecosystem.markers.must[0] {
         MarkerSpec::One(path) => assert_eq!(path, "Cargo.toml"),
         MarkerSpec::AnyOf(_) => panic!("expected MarkerSpec::One"),
+        _ => panic!("unexpected MarkerSpec variant"),
     }
 
-    match &markers.should[0] {
+    match &ecosystem.markers.should[1] {
         MarkerSpec::AnyOf(paths) => {
             assert_eq!(
                 paths,
@@ -37,5 +39,6 @@ fn marker_spec_is_constructible_and_matchable_by_name_from_outside_the_crate() {
             );
         }
         MarkerSpec::One(_) => panic!("expected MarkerSpec::AnyOf"),
+        _ => panic!("unexpected MarkerSpec variant"),
     }
 }
