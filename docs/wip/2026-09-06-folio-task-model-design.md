@@ -101,11 +101,11 @@ check` always means the recipe.
 ## Part 2 — Addressing
 
 ```text
-build                          all ecosystems (fan-out)
-rust::build                    one ecosystem
+build                            all ecosystems (fan-out)
+rust::build                      one ecosystem
 rust::repofolio-manifest::build  one module
-rust::*::build                 glob at segment level
-folio::build                   the unshadowable built-in
+rust::*::build                   glob at segment level
+folio::build                     the unshadowable built-in
 ```
 
 Grammar:
