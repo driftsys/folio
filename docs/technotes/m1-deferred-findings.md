@@ -116,6 +116,50 @@ up.
     has no Windows CI target. Not a demonstrated failure — folio does not
     yet ship a Windows build (release assets land at v0.5+) — but worth
     checking before it does.
+16. **A file-shaped marker (no trailing slash, e.g. `"README.md"`) is
+    satisfied by a same-named directory** (`crates/repofolio-core/src/
+    rules.rs`, `marker_spec_exists`). `Path::exists()` is true for any
+    filesystem entry at that path, file or directory; nothing distinguishes
+    the two for a marker that isn't already using the directory
+    convention. A repository with an empty directory literally named
+    `README.md` would satisfy `FOLIO-101`'s required-path check with no
+    readable content behind it — a narrow, unlikely-in-practice edge
+    case, but a real one, and distinct from finding 15's directory-marker
+    case.
+17. **The ecosystem registry (`folio registry`) and the check pipeline
+    (`folio check`) are two independently maintained lists of which
+    ecosystems exist**, tied together only by doc-comment promises, not
+    by structure. `registry::ecosystem_registry()`
+    (`crates/repofolio-core/src/registry.rs`) and `pipeline::check()`'s
+    hardcoded `repofolio_ecosystem()`/`detect_rust()`-gated calls
+    (`crates/repofolio-core/src/pipeline.rs`) both currently list exactly
+    `repofolio` and `rust`, but nothing enforces that a third ecosystem
+    added to one is also added to the other. Related: `Ecosystem.always`
+    is `#[serde(skip)]` (see decision 0006) specifically so no on-disk
+    file can set it, but as a side effect it is also absent from
+    `folio registry`'s JSON output entirely — a consumer of the registry
+    dump cannot currently tell which listed ecosystems are unconditionally
+    active versus marker-gated.
+18. **`Markers` deserializes permissively — a misspelled field name
+    silently produces an empty marker list rather than a deserialization
+    error** (`crates/repofolio-core/src/ecosystem.rs`, `must`/`should`
+    both `#[serde(default)]`, no `deny_unknown_fields`). Not reachable in
+    M1 (no ecosystem-file loader exists yet), but `Markers`/`MarkerSpec`
+    already derive `Deserialize` specifically for the v0.4 loader, and
+    nothing in this milestone guards against a third-party ecosystem
+    author's typo silently disabling every marker check for their
+    ecosystem. Consider `deny_unknown_fields`, or validation in
+    `schemas/folio-ecosystem/v1.json` (see finding 6, same open
+    dependency).
+19. **No automated test confirms `cargo package --list` still includes
+    the fixture trees** (`crates/repofolio-core/tests/fixtures/`). The
+    packaging fix (renaming fixture manifests to `Cargo.toml.fixture`,
+    materialized back at test time by `materialize_fixture`) was verified
+    manually once, by running `cargo package --list` in a scratch
+    directory (see the execution ledger). A future fixture tree added
+    with a literal checked-in `Cargo.toml` (forgetting the `.fixture`
+    convention) would silently be dropped by `cargo package` again — the
+    exact defect this fix addressed — with no test or CI signal.
 
 ## Process note: three false-pass incidents
 
