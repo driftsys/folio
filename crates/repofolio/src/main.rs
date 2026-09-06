@@ -111,9 +111,26 @@ fn print_human(report: &Report) {
     }
 
     println!(
-        "{} findings ({} errors, {} warnings, {} info)",
-        report.count, report.by_severity.error, report.by_severity.warning, report.by_severity.info
+        "{} {} ({} {}, {} {}, {} info)",
+        report.count,
+        plural(report.count, "finding"),
+        report.by_severity.error,
+        plural(report.by_severity.error, "error"),
+        report.by_severity.warning,
+        plural(report.by_severity.warning, "warning"),
+        report.by_severity.info,
     );
+}
+
+/// `singular` unchanged for a count of exactly 1, `singular` + "s"
+/// otherwise. `info` is not pluralized this way — "0 info"/"1 info"
+/// reads fine as-is, matching the JSON field name.
+fn plural(count: usize, singular: &str) -> String {
+    if count == 1 {
+        singular.to_string()
+    } else {
+        format!("{singular}s")
+    }
 }
 
 fn severity_label(severity: Severity) -> &'static str {

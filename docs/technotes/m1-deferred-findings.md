@@ -99,6 +99,23 @@ up.
     predicate, and an identical `strict_parity_toggles_skip_vs_fail`
     test in each). If the gating rule ever changes in one copy, there is
     no compiler or test signal pointing at the other.
+14. **`location_label` silently drops a set `column` when `line` is
+    absent** (`crates/repofolio/src/main.rs`). `Location { file, line:
+    None, column: Some(_) }` is a legal, constructible value of the
+    public `Location` type, but the wildcard arm of `location_label`'s
+    match prints only the bare file name in that shape, with no
+    indication data was lost. No M1 rule produces this combination, so
+    the branch is untested; a future content-match rule that supplies
+    only a column would hit it silently.
+15. **`marker_spec_exists`'s directory-marker matching
+    (trailing-slash paths like `"docs/"`, `".githooks/"`) is unverified
+    on Windows** (`crates/repofolio-core/src/rules.rs`). On Unix, a
+    trailing separator forces `Path::exists()` to reject a same-named
+    plain file, correctly requiring a real directory; whether Windows'
+    path APIs enforce the same distinction is unconfirmed, and this repo
+    has no Windows CI target. Not a demonstrated failure — folio does not
+    yet ship a Windows build (release assets land at v0.5+) — but worth
+    checking before it does.
 
 ## Process note: three false-pass incidents
 
