@@ -84,15 +84,19 @@ up.
     a `Cargo.toml` — but the doc comment and the check disagree, and no
     test covers "`workspace` key present with the wrong shape".
 12. **`MarkerSpec` marker paths are joined onto `repo_root` with no check
-    that they are relative** (`crates/repofolio-core/src/rules.rs`,
+    that they stay inside it** (`crates/repofolio-core/src/rules.rs`,
     `marker_spec_exists`). `Path::join` silently discards `repo_root` when
     given an absolute path, so an absolute marker path would be checked
     against the host filesystem root instead of the repository being
-    scanned. Not reachable in M1 — both hardcoded ecosystems (`repofolio`,
-    `rust`) only ever use relative marker paths — but `MarkerSpec` derives
-    `Deserialize` specifically so the v0.4 ecosystem loader can feed it
-    marker paths from a third-party `folio.ecosystem.toml`, which is
-    exactly the untrusted-input case this becomes a real concern for.
+    scanned. A relative path containing `..` is a distinct variant of the
+    same gap: `Path::join` keeps `repo_root` as a prefix, but the
+    resolved path can still walk outside the repository tree (e.g.
+    `must = ["../../../../etc/passwd"]`). Not reachable in M1 — both
+    hardcoded ecosystems (`repofolio`, `rust`) only ever use relative,
+    in-tree marker paths — but `MarkerSpec` derives `Deserialize`
+    specifically so the v0.4 ecosystem loader can feed it marker paths
+    from a third-party `folio.ecosystem.toml`, which is exactly the
+    untrusted-input case both variants become a real concern for.
 13. **The `FOLIO_STRICT_PARITY` gating pattern is duplicated verbatim**
     between `crates/repofolio-core/src/ecosystem.rs` and
     `crates/repofolio-manifest/tests/schema_parity.rs` (constant, reader,
