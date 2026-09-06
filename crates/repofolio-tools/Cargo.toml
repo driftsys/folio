@@ -9,8 +9,3 @@ description = "Pinned tool installer for the folio CLI"
 # comment (see docs/planning/folio-plan.md, v0.2). Publishing it now
 # would permanently claim the name on crates.io with no real content.
 publish = false
-
-[dependencies]
-serde.workspace = true
-serde_json.workspace = true
-thiserror.workspace = true
