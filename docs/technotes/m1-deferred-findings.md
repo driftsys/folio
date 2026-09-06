@@ -171,6 +171,44 @@ up.
     dev-dependency this milestone doesn't otherwise need — recorded
     rather than added speculatively; revisit if `public_api.rs`'s pattern
     is ever extended.
+21. **The TOML parse branch silently turns a `nan`/`inf`/`-inf` float
+    literal under `metadata` into JSON `null`, with no error** — the same
+    failure class the YAML branch (`yaml_to_json`) was specifically
+    hardened against, but the TOML branch (`parse.rs`'s
+    `toml_edit::de::from_str::<Value>` call) has no equivalent guard.
+    Confirmed empirically against the pinned `toml_edit` 0.22.27:
+    `[metadata]\nrisk_score = nan` parses to `{"risk_score": null}`,
+    `Ok`, no diagnostic. Fixing it needs the same dedicated
+    TOML-to-JSON conversion finding 8 already calls for (to also fix the
+    datetime-wrapper-object gap) — recorded together, one conversion
+    would close both.
+22. **`yaml_to_json`'s `Real` branch can silently lose precision on an
+    integer literal too large for `i64`** (`crates/repofolio-manifest/
+    src/parse.rs`). `yaml_rust2` tags an out-of-`i64`-range integer
+    literal as `Yaml::Real` rather than `Yaml::Integer`; parsing it as
+    `f64` can round it (confirmed: a 21-digit literal rounds to a
+    different 21-digit value), and since the result is finite it passes
+    the existing non-finite guard silently. Narrower and lower-priority
+    than the datetime/nan gaps above — an integer this large under
+    `metadata` is an unlikely authoring choice — but the same root cause.
+23. **`marker_spec_exists` (`crates/repofolio-core/src/rules.rs`) uses
+    `Path::exists()`, which is case-insensitive by default on macOS
+    (APFS) and Windows (NTFS)**, so a wrongly-cased marker file (e.g.
+    `readme.md` for a required `README.md`) silently satisfies
+    FOLIO-101/FOLIO-102 on those platforms but not on Linux — the same
+    conformance verdict for the same commit depends on which OS ran the
+    check. Related to, but distinct from, findings 15 (Windows directory
+    matching) and 16 (a directory satisfying a file marker).
+24. **`code_registry()` (`crates/repofolio-core/src/registry.rs`) is a
+    hand-maintained second copy of each code's severity, cross-checked
+    against nothing.** Unlike `ecosystem_registry()` in the same file,
+    which calls the exact functions `pipeline::check()` calls, no test
+    or shared source ties `code_registry()`'s `FOLIO-102: Warning` entry
+    to `path_diagnostic`'s actual `Severity::Warning` argument in
+    `rules.rs`. If a code's emitted severity is ever changed at its call
+    site without updating the registry, `folio check` and
+    `folio registry` would silently disagree about that code — not
+    covered by finding 17, which is scoped to the ecosystem half only.
 
 ## Process note: three false-pass incidents
 
