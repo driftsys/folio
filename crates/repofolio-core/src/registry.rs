@@ -22,6 +22,7 @@ use crate::report::Severity;
 /// actually fires against a parsed manifest.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct CodeEntry {
     pub code: String,
     pub severity: Severity,
@@ -88,6 +89,7 @@ pub fn ecosystem_registry() -> Vec<Ecosystem> {
 /// should not need reshaping across a minor version.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Registry {
     pub codes: Vec<CodeEntry>,
     pub ecosystems: Vec<Ecosystem>,

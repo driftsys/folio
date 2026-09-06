@@ -34,6 +34,7 @@ use serde::{Deserialize, Serialize};
 /// summarize.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Report {
     pub count: usize,
     pub by_severity: BySeverity,
@@ -66,6 +67,7 @@ impl Report {
 /// mirrored schema exactly (`error`, `warning`, `info`) with no renaming
 /// needed.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct BySeverity {
     pub error: usize,
     pub warning: usize,
@@ -77,6 +79,7 @@ pub struct BySeverity {
 /// task-model design) flow through the same type as the core `FOLIO-xxx`
 /// codes, and plugin ecosystems can never mint a fixed Rust variant.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Diagnostic {
     pub severity: Severity,
     pub code: String,
@@ -110,6 +113,7 @@ pub enum Severity {
 /// reserved for a future rule kind (e.g. `content-match`) that can
 /// point at a specific position without a shape change.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Location {
     pub file: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]

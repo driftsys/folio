@@ -135,14 +135,9 @@ fn partial_fixture_pins_the_expected_finding_set() {
     );
 
     assert_eq!(report.count, 9);
-    assert_eq!(
-        report.by_severity,
-        BySeverity {
-            error: 4,
-            warning: 5,
-            info: 0,
-        }
-    );
+    assert_eq!(report.by_severity.error, 4);
+    assert_eq!(report.by_severity.warning, 5);
+    assert_eq!(report.by_severity.info, 0);
 }
 
 /// The no-abort property (step 8) at fixture scale: an entirely empty
@@ -208,12 +203,7 @@ fn empty_fixture_still_produces_path_findings_and_a_skipped_folio_002() {
         .any(|d| d.layer.as_deref() == Some("rust")));
 
     assert_eq!(report.count, 16);
-    assert_eq!(
-        report.by_severity,
-        BySeverity {
-            error: 10,
-            warning: 5,
-            info: 1,
-        }
-    );
+    assert_eq!(report.by_severity.error, 10);
+    assert_eq!(report.by_severity.warning, 5);
+    assert_eq!(report.by_severity.info, 1);
 }
