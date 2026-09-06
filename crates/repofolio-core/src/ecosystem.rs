@@ -1,15 +1,46 @@
 //! Ecosystem registry — M1 check-plan step 6
 //! (docs/wip/2026-09-06-m1-check-plan.md).
 //!
-//! `Ecosystem` mirrors the on-disk `folio.ecosystem.toml` format
-//! described in Part 6 of `docs/wip/2026-09-06-folio-task-model-design.md`,
-//! so that the v0.4 ecosystem loader deserializes a file straight into
-//! this type rather than building a second, parallel representation of
-//! the same data. The file wraps `name` (and a format `version` this
-//! crate does not need) in an `[ecosystem]` table; loading that envelope
-//! is a one-line extraction the future loader does, not a reason to
-//! duplicate the shape of `markers` or `commands`, which is the part
-//! worth protecting from drift.
+//! `Ecosystem` mirrors the on-disk `folio.ecosystem.toml` envelope
+//! described in Part 6 of `docs/wip/2026-09-06-folio-task-model-design.md`
+//! field for field, so the v0.4 ecosystem loader deserializes a file
+//! straight into this type with no translation layer:
+//!
+//! ```toml
+//! "$schema" = "https://driftsys.github.io/schemas/folio-ecosystem/v1.json"
+//!
+//! [ecosystem]
+//! name = "rust"
+//! version = 1
+//!
+//! [markers]
+//! must = ["Cargo.toml"]
+//!
+//! [commands.build]
+//! debug = "cargo build"
+//! ```
+//!
+//! `name` and `version` are nested under `ecosystem: EcosystemMeta`
+//! because the file nests them under `[ecosystem]`; a flat `name` field
+//! on `Ecosystem` itself could not deserialize that table without a
+//! second, parallel implementation doing the translation — exactly what
+//! this mirror exists to avoid. `version` is the ecosystem *file format*
+//! version (an integer the design doc's own example sets to `1`), not a
+//! semantic version of the ecosystem's tooling.
+//!
+//! `always` is deliberately **not** part of this mirror: it is
+//! `#[serde(skip)]`, so no `folio.ecosystem.toml` — including one fetched
+//! from a third-party remote source (Part 6's pinned, checksummed remote
+//! ecosystem source) — can set it. Granting an ecosystem unconditional
+//! activation is a privilege only the built-in `repofolio` registration
+//! exercises, in code, never through a file a plugin author controls.
+//!
+//! `schema` mirrors the file's top-level `"$schema"` key. It is carried
+//! (as an optional field, so the two M1 instances below need not set it)
+//! rather than dropped, for two reasons: dropping it would make a real
+//! `folio.ecosystem.toml` fail to round-trip through this type, and its
+//! value is how a v0.4 loader will eventually tell which schema version a
+//! given file was authored against.
 //!
 //! M1 populates two instances by hand — `repofolio` (always active) and
 //! `rust` (activated by a root `Cargo.toml` declaring `[workspace]`) —
@@ -26,12 +57,21 @@ use serde::{Deserialize, Serialize};
 /// `rust` that only applies when detected in a repository.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Ecosystem {
-    pub name: String,
+    /// Mirrors the file's top-level `"$schema"` key. See the module
+    /// doc comment for why this is carried rather than dropped.
+    #[serde(rename = "$schema", default, skip_serializing_if = "Option::is_none")]
+    pub schema: Option<String>,
+    pub ecosystem: EcosystemMeta,
     /// `true` only for `repofolio`: the one layer with no marker to
-    /// detect, active in every repository unconditionally. A loaded
-    /// `folio.ecosystem.toml` never sets this — it defaults to `false`
-    /// for every ecosystem detected by markers instead.
-    #[serde(default)]
+    /// detect, active in every repository unconditionally.
+    /// `#[serde(skip)]` rather than `#[serde(default)]`: a `default`
+    /// still lets an incoming file set the field explicitly (just
+    /// supplies a fallback when it is absent), whereas `skip` removes it
+    /// from the deserialized schema entirely, so an `always = true` key
+    /// in a loaded `folio.ecosystem.toml` is silently not a field this
+    /// type reads. No ecosystem loaded from a file — built-in, local, or
+    /// remote — can grant itself unconditional activation this way.
+    #[serde(skip)]
     pub always: bool,
     pub markers: Markers,
     /// Empty for both M1 instances. Present in the type because v0.4
@@ -40,6 +80,16 @@ pub struct Ecosystem {
     /// breaking change.
     #[serde(default)]
     pub commands: Commands,
+}
+
+/// The `[ecosystem]` table: identity and file-format version, nested to
+/// match the on-disk envelope exactly (see the module doc comment).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EcosystemMeta {
+    pub name: String,
+    /// The `folio.ecosystem.toml` format version, e.g. `1` — not a
+    /// semantic version of the ecosystem's own tooling.
+    pub version: u32,
 }
 
 /// Paths that give both ecosystem detection and the `FOLIO-101`
@@ -84,10 +134,15 @@ impl Default for Commands {
     }
 }
 
-/// The `repofolio` ecosystem: always active, no marker to detect.
+/// The `repofolio` ecosystem: always active, no marker to detect. Not
+/// loaded from any `folio.ecosystem.toml` file, so `schema` is `None`.
 pub fn repofolio_ecosystem() -> Ecosystem {
     Ecosystem {
-        name: "repofolio".to_string(),
+        schema: None,
+        ecosystem: EcosystemMeta {
+            name: "repofolio".to_string(),
+            version: 1,
+        },
         always: true,
         markers: Markers::default(),
         commands: Commands::default(),
@@ -95,10 +150,15 @@ pub fn repofolio_ecosystem() -> Ecosystem {
 }
 
 /// The `rust` ecosystem: not always active, detected by
-/// [`detect_rust`].
+/// [`detect_rust`]. Not loaded from any `folio.ecosystem.toml` file, so
+/// `schema` is `None`.
 pub fn rust_ecosystem() -> Ecosystem {
     Ecosystem {
-        name: "rust".to_string(),
+        schema: None,
+        ecosystem: EcosystemMeta {
+            name: "rust".to_string(),
+            version: 1,
+        },
         always: false,
         markers: Markers::default(),
         commands: Commands::default(),
@@ -133,7 +193,7 @@ mod tests {
     fn repofolio_is_always_active_with_no_markers() {
         let ecosystem = repofolio_ecosystem();
 
-        assert_eq!(ecosystem.name, "repofolio");
+        assert_eq!(ecosystem.ecosystem.name, "repofolio");
         assert!(ecosystem.always);
         assert_eq!(ecosystem.markers, Markers::default());
         assert_eq!(ecosystem.commands, Commands::default());
@@ -143,7 +203,7 @@ mod tests {
     fn rust_is_not_always_active() {
         let ecosystem = rust_ecosystem();
 
-        assert_eq!(ecosystem.name, "rust");
+        assert_eq!(ecosystem.ecosystem.name, "rust");
         assert!(!ecosystem.always);
     }
 
@@ -206,5 +266,66 @@ mod tests {
             serde_json::to_value(&three_level).expect("serializes"),
             three_level_json
         );
+    }
+
+    /// Proves the mirror actually holds: the literal on-disk shape from
+    /// Part 6 of the task-model design (`"$schema"`, `[ecosystem]` with
+    /// `name`/`version`, `[markers]`, `[commands.<verb>]`) deserializes
+    /// directly into `Ecosystem` with no glue code.
+    #[test]
+    fn deserializes_the_real_on_disk_ecosystem_file_shape() {
+        let toml = r#"
+"$schema" = "https://driftsys.github.io/schemas/folio-ecosystem/v1.json"
+
+[ecosystem]
+name = "rust"
+version = 1
+
+[markers]
+must = ["Cargo.toml"]
+should = ["rust-toolchain.toml"]
+
+[commands.build]
+debug = "cargo build"
+release = "cargo build --release"
+"#;
+
+        let ecosystem: Ecosystem = toml_edit::de::from_str(toml).expect("on-disk shape parses");
+
+        assert_eq!(
+            ecosystem.schema.as_deref(),
+            Some("https://driftsys.github.io/schemas/folio-ecosystem/v1.json")
+        );
+        assert_eq!(ecosystem.ecosystem.name, "rust");
+        assert_eq!(ecosystem.ecosystem.version, 1);
+        assert_eq!(ecosystem.markers.must, vec!["Cargo.toml".to_string()]);
+        assert_eq!(
+            ecosystem.markers.should,
+            vec!["rust-toolchain.toml".to_string()]
+        );
+        // Not part of the file format: always is never set by a loaded file.
+        assert!(!ecosystem.always);
+    }
+
+    /// A malicious or careless `folio.ecosystem.toml` cannot grant
+    /// itself unconditional activation: `always` is `#[serde(skip)]`,
+    /// so an `always = true` key in the input is not read as this
+    /// field at all — it is simply an unrecognized key the (permissive,
+    /// non-`deny_unknown_fields`) deserializer ignores.
+    #[test]
+    fn always_cannot_be_set_from_a_loaded_file() {
+        let toml = r#"
+[ecosystem]
+name = "evil"
+version = 1
+
+always = true
+
+[markers]
+"#;
+
+        let ecosystem: Ecosystem = toml_edit::de::from_str(toml).expect("file parses");
+
+        assert!(!ecosystem.always);
     }
 }

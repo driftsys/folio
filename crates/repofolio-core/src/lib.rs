@@ -10,6 +10,6 @@ mod ecosystem;
 mod report;
 
 pub use ecosystem::{
-    detect_rust, repofolio_ecosystem, rust_ecosystem, Commands, Ecosystem, Markers,
+    detect_rust, repofolio_ecosystem, rust_ecosystem, Commands, Ecosystem, EcosystemMeta, Markers,
 };
 pub use report::{BySeverity, Diagnostic, Location, Report, Severity};
