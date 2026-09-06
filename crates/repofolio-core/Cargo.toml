@@ -5,14 +5,6 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Conformance check engine and FOLIO- rule registry for the Repofolio standard"
-# Without this, `cargo package` silently drops tests/fixtures/compliant/
-# and tests/fixtures/partial/: cargo treats any directory containing a
-# Cargo.toml as a nested package and excludes it, and both fixture trees
-# have one (the fixtures themselves are repository trees under test, so
-# they need a Cargo.toml to trigger rust-ecosystem detection). tests/
-# itself IS packaged, so the published .crate's tests/check_fixtures.rs
-# ran against fixture directories that were not there.
-include = ["src/**", "tests/**"]
 
 [dependencies]
 repofolio-manifest.workspace = true
