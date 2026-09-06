@@ -197,6 +197,25 @@ impl std::fmt::Display for MarkerSpec {
     }
 }
 
+impl MarkerSpec {
+    /// The single path a caller should use when it needs one filesystem
+    /// path rather than this spec's full human-readable form — the first
+    /// (and only) path for `One`, or the first alternative for `AnyOf`.
+    ///
+    /// `repofolio_core::rules::path_diagnostic` uses this for
+    /// `Location::file`, which maps to SARIF `artifactLocation.uri`: the
+    /// full `Display` form of an `AnyOf` group (e.g.
+    /// `"rustfmt.toml or .rustfmt.toml"`) is not a URI and cannot be
+    /// opened, so it stays in the diagnostic's `message` instead, where
+    /// it already appears.
+    pub(crate) fn primary_path(&self) -> &str {
+        match self {
+            MarkerSpec::One(path) => path,
+            MarkerSpec::AnyOf(paths) => paths.first().map(String::as_str).unwrap_or_default(),
+        }
+    }
+}
+
 /// The `commands` table: verb -> build_type -> command
 /// (`commands.build.debug = "cargo build"`), for most ecosystems. The C
 /// ecosystem needs one more level, keyed by build system, before it

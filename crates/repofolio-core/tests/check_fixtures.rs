@@ -104,8 +104,9 @@ fn compliant_fixture_produces_no_diagnostics() {
 /// A repository with a valid manifest but several missing required and
 /// recommended paths, across both the always-active `repofolio` layer
 /// and a detected `rust` layer, pins the exact finding set — including
-/// that the `rust-toolchain.toml` alternative-group's message names the
-/// spec verbatim rather than one of its two alternatives.
+/// that the missing `rustfmt.toml`/`.rustfmt.toml` alternative group's
+/// `location.file` names only the first alternative (not a `Display`
+/// dump of the whole spec, which is not a URI and cannot be opened).
 #[test]
 fn partial_fixture_pins_the_expected_finding_set() {
     let (_guard, root) = materialize_fixture("partial");
@@ -129,7 +130,7 @@ fn partial_fixture_pins_the_expected_finding_set() {
     );
     assert_eq!(
         paths_for(&report, "FOLIO-102", Severity::Warning, Some("rust")),
-        set(&["rust-toolchain.toml", "rustfmt.toml or .rustfmt.toml"])
+        set(&["rust-toolchain.toml", "rustfmt.toml"])
     );
 
     assert_eq!(report.count, 9);

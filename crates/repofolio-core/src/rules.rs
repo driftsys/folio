@@ -172,7 +172,11 @@ fn path_diagnostic(
         code: code.to_string(),
         message: format!("{kind} path missing: {spec}"),
         layer: Some(layer.to_string()),
-        location: Location::file(spec.to_string()),
+        // `spec`'s full Display form (e.g. "rustfmt.toml or .rustfmt.toml")
+        // already appears in `message` above; `location.file` gets the
+        // first alternative instead, since it maps to SARIF
+        // `artifactLocation.uri` and the full spec text is not a URI.
+        location: Location::file(spec.primary_path().to_string()),
     }
 }
 
@@ -395,10 +399,15 @@ mod tests {
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].code, "FOLIO-102");
         assert_eq!(diagnostics[0].severity, Severity::Warning);
+        // The full spec — naming every alternative — stays in `message`.
         assert_eq!(
-            diagnostics[0].location.file,
-            "rustfmt.toml or .rustfmt.toml"
+            diagnostics[0].message,
+            "recommended path missing: rustfmt.toml or .rustfmt.toml"
         );
+        // `location.file` is not a Display dump of the whole spec: it is
+        // not a URI and cannot be opened. It names the first alternative
+        // instead.
+        assert_eq!(diagnostics[0].location.file, "rustfmt.toml");
     }
 
     #[test]
