@@ -42,6 +42,38 @@
 //! value is how a v0.4 loader will eventually tell which schema version a
 //! given file was authored against.
 //!
+//! **Which fields a real file may omit — audited field by field against
+//! `driftsys/repofolio/ecosystems/rust/folio.ecosystem.toml`, the one
+//! real reference file that exists at the time of this audit:**
+//!
+//! - `schema` (`"$schema"`) — optional (`Option`, defaults to `None`).
+//!   It is a pointer to the schema the file was authored against, not
+//!   structural data; a file missing it is still a well-formed ecosystem
+//!   definition.
+//! - `ecosystem` (the `[ecosystem]` table) — **required, no default.**
+//!   Every real file declares identity; there is no sensible default
+//!   name or format version to fall back to, so a file missing this
+//!   table should fail to deserialize rather than silently become a
+//!   nameless ecosystem.
+//!   - `EcosystemMeta.name` — required. No sensible default.
+//!   - `EcosystemMeta.version` — required. No sensible default; the one
+//!     real file sets it explicitly (`1`), and there is no evidence yet
+//!     of a real file omitting it.
+//! - `always` — not part of the on-disk format at all (`#[serde(skip)]`),
+//!   so omission/presence in a file is moot.
+//! - `markers` (the `[markers]` table) — **optional (`#[serde(default)]`,
+//!   defaults to `Markers::default()`).** The real `rust` scaffold file
+//!   omits `[markers]` entirely (its own comment: "Inputs, templates,
+//!   patches, sections, and commands are intentionally omitted from the
+//!   v0.1 scaffold"). Without this default, that file fails to
+//!   deserialize with "missing field `markers`" — the defect a review
+//!   round of this batch found and this comment records.
+//!   - `Markers.must`, `Markers.should` — each optional
+//!     (`#[serde(default)]`, empty `Vec` when absent).
+//! - `commands` (the `commands` table) — **optional (`#[serde(default)]`,
+//!   defaults to the empty `Commands::Group`).** Omitted by the same
+//!   real scaffold file, for the same reason as `markers`.
+//!
 //! M1 populates two instances by hand — `repofolio` (always active) and
 //! `rust` (activated by a root `Cargo.toml` declaring `[workspace]`) —
 //! with empty `markers` and `commands`. Step 7 fills in the required and
@@ -73,11 +105,19 @@ pub struct Ecosystem {
     /// remote — can grant itself unconditional activation this way.
     #[serde(skip)]
     pub always: bool,
+    /// The real `ecosystems/rust/folio.ecosystem.toml` scaffold in
+    /// `driftsys/repofolio` omits `[markers]` entirely (its own comment
+    /// says templates/sections/commands "are intentionally omitted from
+    /// the v0.1 scaffold") — without `default` here, that file fails to
+    /// deserialize with "missing field `markers`". See the field-by-field
+    /// audit in the module doc comment.
+    #[serde(default)]
     pub markers: Markers,
-    /// Empty for both M1 instances. Present in the type because v0.4
-    /// ecosystems (and the future `folio dispatch` verbs) need it, and
-    /// adding a field to a type already frozen at v1.0 would be a
-    /// breaking change.
+    /// Empty for both M1 instances, and omitted by the real
+    /// `rust` scaffold file for the same reason `markers` is. Present in
+    /// the type because v0.4 ecosystems (and the future `folio dispatch`
+    /// verbs) need it, and adding a field to a type already frozen at
+    /// v1.0 would be a breaking change.
     #[serde(default)]
     pub commands: Commands,
 }
@@ -268,12 +308,23 @@ mod tests {
         );
     }
 
-    /// Proves the mirror actually holds: the literal on-disk shape from
+    /// Deserializes a *fully populated* ecosystem file, illustrated by
     /// Part 6 of the task-model design (`"$schema"`, `[ecosystem]` with
-    /// `name`/`version`, `[markers]`, `[commands.<verb>]`) deserializes
-    /// directly into `Ecosystem` with no glue code.
+    /// `name`/`version`, `[markers]`, `[commands.<verb>]`) — a shape a
+    /// real ecosystem file may legitimately have once it grows past a
+    /// bare scaffold. This is a fabricated literal loosely based on that
+    /// illustration, not a copy of any real file — see
+    /// `deserializes_the_real_rust_scaffold_file_verbatim` and
+    /// `deserializes_the_real_rust_scaffold_file_from_the_sibling_checkout`
+    /// below for tests against the one real file that exists today,
+    /// which has neither `[markers]` nor `[commands]`. A prior version of
+    /// this test claimed to prove the mirror against "the real on-disk
+    /// shape" while never parsing anything a real file actually
+    /// contains, which is why it kept passing while the real file failed
+    /// to deserialize (missing field `markers`) — recorded here so the
+    /// mistake is not repeated.
     #[test]
-    fn deserializes_the_real_on_disk_ecosystem_file_shape() {
+    fn deserializes_a_populated_ecosystem_file_per_the_design_doc_illustration() {
         let toml = r#"
 "$schema" = "https://driftsys.github.io/schemas/folio-ecosystem/v1.json"
 
@@ -290,7 +341,7 @@ debug = "cargo build"
 release = "cargo build --release"
 "#;
 
-        let ecosystem: Ecosystem = toml_edit::de::from_str(toml).expect("on-disk shape parses");
+        let ecosystem: Ecosystem = toml_edit::de::from_str(toml).expect("populated shape parses");
 
         assert_eq!(
             ecosystem.schema.as_deref(),
@@ -305,6 +356,73 @@ release = "cargo build --release"
         );
         // Not part of the file format: always is never set by a loaded file.
         assert!(!ecosystem.always);
+    }
+
+    /// (a) A byte-for-byte copy of the real reference file —
+    /// `driftsys/repofolio/ecosystems/rust/folio.ecosystem.toml` at the
+    /// time of writing — including its leading comment line, the
+    /// `"$schema"` key, and the absence of `[markers]`/`[commands]` its
+    /// own trailing comment documents as intentional for the v0.1
+    /// scaffold. This is the literal that exposed the "missing field
+    /// `markers`" defect: `Ecosystem.markers` had no `#[serde(default)]`,
+    /// so this exact text failed to deserialize until that was fixed.
+    #[test]
+    fn deserializes_the_real_rust_scaffold_file_verbatim() {
+        let toml = r#"# ecosystems/rust/folio.ecosystem.toml
+"$schema" = "https://driftsys.github.io/schemas/folio-ecosystem/v1.json"
+
+[ecosystem]
+name = "rust"
+version = 1
+
+# Inputs, templates, patches, sections, and commands are intentionally
+# omitted from the v0.1 scaffold. They are filled in as folio v0.1+ work.
+"#;
+
+        let ecosystem: Ecosystem = toml_edit::de::from_str(toml)
+            .expect("the real rust scaffold file, byte for byte, must deserialize");
+
+        assert_eq!(ecosystem.ecosystem.name, "rust");
+        assert_eq!(ecosystem.ecosystem.version, 1);
+        assert_eq!(
+            ecosystem.schema.as_deref(),
+            Some("https://driftsys.github.io/schemas/folio-ecosystem/v1.json")
+        );
+        assert_eq!(ecosystem.markers, Markers::default());
+        assert_eq!(ecosystem.commands, Commands::default());
+    }
+
+    /// (b) Reads the actual sibling file at
+    /// `../../../repofolio/ecosystems/rust/folio.ecosystem.toml` (from
+    /// `CARGO_MANIFEST_DIR`), the same present-or-skip pattern
+    /// `repofolio-manifest`'s `tests/schema_parity.rs` already uses for
+    /// its sibling `driftsys/schemas` checkout. Unlike the verbatim copy
+    /// above, this test keeps catching drift if the real file's shape
+    /// changes upstream, since it reads the file itself rather than a
+    /// literal frozen at the time this test was written. Skips (rather
+    /// than failing) when the sibling `driftsys/repofolio` checkout is
+    /// not present, e.g. a CI clone of only this repository.
+    #[test]
+    fn deserializes_the_real_rust_scaffold_file_from_the_sibling_checkout() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../repofolio/ecosystems/rust/folio.ecosystem.toml");
+
+        if !path.is_file() {
+            eprintln!(
+                "skipping: sibling driftsys/repofolio checkout not found at {}",
+                path.display()
+            );
+            return;
+        }
+
+        let text =
+            fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+
+        let ecosystem: Ecosystem = toml_edit::de::from_str(&text)
+            .unwrap_or_else(|e| panic!("deserialize {}: {e}", path.display()));
+
+        assert_eq!(ecosystem.ecosystem.name, "rust");
+        assert_eq!(ecosystem.ecosystem.version, 1);
     }
 
     /// A malicious or careless `folio.ecosystem.toml` cannot grant
