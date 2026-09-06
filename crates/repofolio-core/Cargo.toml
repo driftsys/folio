@@ -10,3 +10,7 @@ description = "Conformance check engine and FOLIO- rule registry for the Repofol
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+toml_edit.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
