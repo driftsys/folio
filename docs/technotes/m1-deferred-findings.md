@@ -160,6 +160,17 @@ up.
     with a literal checked-in `Cargo.toml` (forgetting the `.fixture`
     convention) would silently be dropped by `cargo package` again — the
     exact defect this fix addressed — with no test or CI signal.
+20. **"Stays `#[non_exhaustive]`" is unpinned for `Report`, `Diagnostic`,
+    `Location`, `BySeverity` (`crates/repofolio-core/src/report.rs`), and
+    `CodeEntry`/`Registry` (`registry.rs`)**. `tests/public_api.rs` pins
+    exactly this property for `Markers`/`MarkerSpec` (it relies on being
+    unable to build a `Markers` literal from outside the crate), because
+    that property was once actually lost by accident. No comparable
+    regression has happened for these six types, and the standard way to
+    pin "does not compile" is a `trybuild`-style compile-fail test, a new
+    dev-dependency this milestone doesn't otherwise need — recorded
+    rather than added speculatively; revisit if `public_api.rs`'s pattern
+    is ever extended.
 
 ## Process note: three false-pass incidents
 

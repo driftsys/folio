@@ -50,5 +50,6 @@ no second list of ecosystems that could drift from the first.
 `0` always, unless JSON serialization itself fails — an internal error,
 surfaced through the same `Result`-based `Err` path as `check`'s own
 internal failures, exiting `2`. An unrecognized `--format` value is a
-separate usage failure clap rejects before `run()` is ever called (its
-own error message and exit `2`, not the path above).
+separate usage failure: `Cli::parse()`, at the top of `run()`, rejects it
+before command dispatch ever reaches `run_registry` (its own error
+message and exit `2`, not the path above).
