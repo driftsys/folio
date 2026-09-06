@@ -112,7 +112,11 @@ skips when it is not.
 - Verify: the test passes today, and fails if a byte is changed in the
   bundled copy.
 
-This closes verification follow-up 6 in `folio-plan.md`.
+This test exists and is enforceable locally via `FOLIO_STRICT_PARITY=1`,
+which closes half of verification follow-up 6 in `folio-plan.md`
+("Bundled `project` schema vs published `v1.json` parity, asserted in
+folio CI"). The other half — assertion in CI — stays open: this
+repository has no CI pipeline as of this milestone.
 
 ### 5. Report type
 
@@ -213,9 +217,12 @@ than fix it silently.
 ## Open items
 
 1. **Suppression.** The v0.1 exit criteria require "ticketed exceptions",
-   and nothing expresses one. `repofolio`'s own manifest produces two
-   genuine FOLIO-002 failures, so the gate cannot be met as written.
-   Decide at the dogfood gate.
+   and nothing expresses one. The sibling `driftsys/repofolio` standard
+   repository's own manifest produces two genuine FOLIO-002 failures
+   (object-form `authors`, an unexpected `versioning` key — the
+   schema-versus-prose drift recorded in the design document at Part 8
+   item 2), so the gate cannot be met as written for that repository.
+   folio's own manifest validates cleanly. Decide at the dogfood gate.
 2. **Crate rename — resolved 2026-09-06 in commit 441005c.** `folio-cli`
    and `folio-core` were already taken on crates.io, so the workspace moved
    to the `repofolio-*` namespace. The front-end crate took the bare name

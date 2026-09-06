@@ -12,13 +12,20 @@ plan/roadmap win — this file may lag.
 Part of the `driftsys` org, alongside `git-std`, `prim`, `upskill`, `dock`,
 `schemas`, and `repofolio`.
 
-**Repo split (decided 2026-08-29, second pass):** `repofolio` holds the
-spec markdown, published schema, and the normative `tests/fixtures/`
-(compliant/partial/empty — language-agnostic, not folio-specific). This
-repo holds the CLI, its own crate tests, and the Foliofile diagnostic
-corpus (v0.3+). folio's tests pin `repofolio`'s fixtures as a dependency
-(submodule or vendoring script — not yet decided; pick the simpler one
-when you get there).
+**Repo split (decided 2026-08-29, second pass) — superseded 2026-09-06:**
+`repofolio` was to hold the spec markdown, published schema, and the
+normative `tests/fixtures/` (compliant/partial/empty — language-agnostic,
+not folio-specific), with this repo holding the CLI, its own crate tests,
+and the Foliofile diagnostic corpus (v0.3+). This split was reversed on
+2026-09-06: `driftsys/repofolio` and `driftsys/folio` are now decided to
+consolidate into one repository, reinstating ADR 0003
+(`standard-and-cli-same-repo`) from `driftsys/repofolio`'s own `docs/adr/`.
+See `docs/decisions/0002-consolidate-repofolio-and-folio-repositories.md`.
+The physical merge has not happened yet, so this repo and
+`driftsys/repofolio` remain separate checkouts today; the open question
+about pinning `repofolio`'s fixtures by submodule or vendoring script is
+moot once the merge lands, since the fixtures will live in this repository
+directly.
 
 ## Non-negotiable architecture decisions
 

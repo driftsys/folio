@@ -10,9 +10,11 @@ satisfies, and `docs/decisions/` for the individual choices called out below.
 - **`repofolio-manifest`** — manifest discovery (`discover_manifest`),
   parsing to a canonical `serde_json::Value` regardless of source format
   (`parse_manifest`), and schema validation against the bundled schema
-  (`validate_manifest`). Parse failure (`ParseError`) and schema failure
-  (`SchemaError`) are distinct types, because they map to different
-  diagnostic codes (`FOLIO-001` and `FOLIO-002` respectively) one layer up.
+  (`validate_manifest`). Discovery failure (`DiscoverError`), parse failure
+  (`ParseError`), and schema failure (`SchemaError`) are three distinct
+  types, because they map to three different diagnostic codes one layer up:
+  `FOLIO-001` (missing), `FOLIO-003` (unparseable), and `FOLIO-002` (schema)
+  respectively.
 - **`repofolio-core`** — the `FOLIO-` rule registry (`rules::manifest_rules`,
   `rules::path_rules`), the ecosystem registry (`ecosystem` module), the
   diagnostic report type (`report` module), and the pipeline that runs all
@@ -39,7 +41,7 @@ validated, and a report describing every independent problem is more useful
 than one that stops at the first.
 
 ```
-manifest_rules(root)                     // FOLIO-001, FOLIO-002
+manifest_rules(root)                     // FOLIO-001, FOLIO-003, FOLIO-002
   + path_rules(root, repofolio_ecosystem())   // FOLIO-101/102, layer "repofolio", always
   + (detect_rust(root) ? path_rules(root, rust_ecosystem()) : [])  // layer "rust"
   -> Report::new(all diagnostics)
@@ -66,8 +68,8 @@ than a breaking contract change.
   (`RUST-001`, `UNITY-001`, per the task-model design's Part 6) flow through
   the same type as the core `FOLIO-xxx` codes, and a plugin ecosystem could
   never mint a fixed Rust variant. `layer` is `None` for manifest-level
-  codes (`FOLIO-001`/`FOLIO-002`, which apply once per repository) and
-  `Some(name)` for per-layer codes (`FOLIO-101`/`FOLIO-102`).
+  codes (`FOLIO-001`/`FOLIO-003`/`FOLIO-002`, which apply once per
+  repository) and `Some(name)` for per-layer codes (`FOLIO-101`/`FOLIO-102`).
 - `Severity` is exactly `Error | Warning | Info` — see
   `docs/decisions/0004-schema-validation-skip-reported-as-info-severity.md`
   for why a skipped check does not get a fourth variant.
@@ -133,12 +135,13 @@ the `rust` layer.
 `manifest_rules(root)` runs the discover → parse → validate chain and turns
 every stage's failure into a diagnostic rather than an early return, so the
 pipeline can always continue past it. It is intentionally the only place
-that decides `FOLIO-001` versus `FOLIO-002`: `discover_manifest`/
-`parse_manifest` failures become `FOLIO-001`, and a `FOLIO-002` "skipped"
-finding accompanies them (see decision 0004); a manifest that parses is
-handed to `validate_manifest`, whose `SchemaError.errors` (one entry per
-violation) becomes one `FOLIO-002` diagnostic per violation, not one
-diagnostic wrapping the list.
+that decides `FOLIO-001` versus `FOLIO-003` versus `FOLIO-002`:
+`discover_manifest` failure becomes `FOLIO-001`, `parse_manifest` failure
+becomes `FOLIO-003`, and either is accompanied by a `FOLIO-002` "skipped"
+finding naming whichever code caused the skip (see decision 0004); a
+manifest that parses is handed to `validate_manifest`, whose
+`SchemaError.errors` (one entry per violation) becomes one `FOLIO-002`
+diagnostic per violation, not one diagnostic wrapping the list.
 
 `path_rules(root, ecosystem)` runs `FOLIO-101`/`FOLIO-102` for one
 ecosystem's markers, naming `ecosystem.ecosystem.name` as the finding's

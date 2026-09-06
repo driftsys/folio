@@ -44,14 +44,23 @@ findings reflects the real violation count.
 
 ## The `FOLIO-` diagnostic registry
 
-Four diagnostic codes, and four only, at this milestone:
+Five diagnostic codes, and five only, at this milestone:
 
 | Code | Severity | Condition |
 | --- | --- | --- |
-| `FOLIO-001` | error | The manifest is missing, unreadable, or fails to parse in its own format. |
-| `FOLIO-002` | error (`info` when skipped) | The manifest parses but fails the bundled schema. Reported at `info` severity, with a message naming the reason, when `FOLIO-001` has already failed and there is nothing to validate. |
+| `FOLIO-001` | error | The manifest is missing — none of `project.toml`, `project.yaml`, `project.json` exists at the repository root. |
+| `FOLIO-002` | error (`info` when skipped) | The manifest parses but fails the bundled schema. Reported at `info` severity, with a message naming the reason, when `FOLIO-001` or `FOLIO-003` has already failed and there is nothing to validate. |
+| `FOLIO-003` | error | A manifest file was found but is unreadable or fails to parse in its own format (malformed TOML, unparseable YAML, malformed JSON). |
 | `FOLIO-101` | error | A required path for an active layer is absent from the repository. |
 | `FOLIO-102` | warning | A recommended path for an active layer is absent from the repository. |
+
+`FOLIO-001` and `FOLIO-003` were one code (`FOLIO-001`, "manifest missing or
+unparseable") through the rest of this milestone's development and were
+split before this branch merged: the two failures have different remediation
+for a consumer (`folio init` versus fixing the manifest's syntax) and were
+indistinguishable by diagnostic code. Splitting a shipped code after v1.0
+would break consumers who branch on it; splitting it now, before any release,
+is free.
 
 Manifest presence belongs to `FOLIO-001` alone. A repository with no
 manifest reports that fact once; the manifest filename is never also listed
@@ -81,7 +90,7 @@ A `Cargo.toml` alone does not activate this layer: a single, non-workspace
 crate has one too. Activation is a dedicated content check against
 `[workspace]`, not a marker-presence test, and a missing or unparseable
 `Cargo.toml` is treated as "not detected" — that failure mode belongs to
-`FOLIO-001`/`FOLIO-002` against the project manifest, not to ecosystem
+`FOLIO-001`/`FOLIO-003` against the project manifest, not to ecosystem
 activation.
 
 Required: `Cargo.toml`, `Cargo.lock`.
@@ -112,10 +121,10 @@ Recommended: `rust-toolchain.toml`; the alternative group `rustfmt.toml` or
 `count` and `bySeverity` are always derived from `diagnostics` and can never
 disagree with it. `layer` is present only for per-layer findings
 (`FOLIO-101`, `FOLIO-102`); manifest-level findings (`FOLIO-001`,
-`FOLIO-002`) omit it, since they apply once to the whole repository rather
-than once per active layer. `location.line`/`location.column` are present
-only for a rule kind that can point at a specific position within a file; no
-rule at this milestone populates them.
+`FOLIO-003`, `FOLIO-002`) omit it, since they apply once to the whole
+repository rather than once per active layer. `location.line`/
+`location.column` are present only for a rule kind that can point at a
+specific position within a file; no rule at this milestone populates them.
 
 ## Exit status contract
 

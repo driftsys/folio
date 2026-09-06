@@ -12,7 +12,7 @@ up.
    selects `project.toml` over `project.yaml` over `project.json` by
    silent priority when more than one is present. A repository holding
    more than one project manifest gets no warning that one is being
-   ignored — a genuine conformance smell with no code in the four-entry
+   ignored — a genuine conformance smell with no code in the five-entry
    `FOLIO-` registry to express it. Consider a dedicated code the next
    time the registry is extended.
 2. **`validate_manifest` recompiles the schema on every call**

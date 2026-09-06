@@ -3,8 +3,9 @@
 ## Context
 
 `FOLIO-002` (manifest fails the bundled schema) has nothing to validate
-once `FOLIO-001` (manifest missing or unparseable) has already failed —
-there is no parsed value left to check. The `Report`/`Diagnostic`/
+once the manifest failed to be discovered or parsed (`FOLIO-001` for a
+missing manifest, `FOLIO-003` for one that fails to parse) — there is no
+parsed value left to check. The `Report`/`Diagnostic`/
 `Severity` shape (`crates/repofolio-core/src/report.rs`) mirrors the house
 diagnostics shape at `schemas/markspec/diagnostics/v1.json`, whose
 `severity` enum is only `error`/`warning`/`info`, and is frozen at v1.0 so
@@ -27,7 +28,8 @@ change to the wire contract.
 
 Emit the skipped `FOLIO-002` finding at `Severity::Info`
 (`crates/repofolio-core/src/rules.rs`, `skipped_schema_diagnostic`), with
-the message `"skipped: FOLIO-001 already failed, nothing to validate"`.
+the message `"skipped: {reason} already failed, nothing to validate"`, where
+`{reason}` is `FOLIO-001` or `FOLIO-003` depending on which stage failed.
 This stays expressible in the mirrored three-variant shape, does not affect
 exit-code grading (only an error-severity finding moves
 `report.by_severity.error` above zero), and maps cleanly to a future SARIF
