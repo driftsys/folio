@@ -85,7 +85,7 @@ fn set(paths: &[&str]) -> BTreeSet<String> {
     paths.iter().map(|s| s.to_string()).collect()
 }
 
-/// A repository satisfying every FOLIO-001/002/101/102 rule for both
+/// A repository satisfying every FOLIO-001/003/002/101/102 rule for both
 /// layers produces no diagnostics at all.
 #[test]
 fn compliant_fixture_produces_no_diagnostics() {

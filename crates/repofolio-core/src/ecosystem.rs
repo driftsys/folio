@@ -336,7 +336,7 @@ pub fn rust_ecosystem() -> Ecosystem {
 /// a dedicated content check rather than a `markers.must` path-presence
 /// test. A missing or unparseable `Cargo.toml` is treated as "not
 /// detected" rather than an error: manifest-shaped failures are the
-/// concern of `FOLIO-001`/`FOLIO-002` against the *project* manifest,
+/// concern of `FOLIO-001`/`FOLIO-003` against the *project* manifest,
 /// not this activation check.
 pub fn detect_rust(repo_root: &Path) -> bool {
     let Ok(text) = fs::read_to_string(repo_root.join("Cargo.toml")) else {

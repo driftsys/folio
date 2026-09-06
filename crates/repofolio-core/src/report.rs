@@ -1,5 +1,5 @@
 //! Diagnostic report type — M1 check-plan step 5
-//! (docs/wip/2026-09-06-m1-check-plan.md).
+//! (docs/archive/plans/2026-09-06-m1-check-plan.md).
 //!
 //! Mirrors the house diagnostics shape at
 //! `schemas/markspec/diagnostics/v1.json` (`count`, `bySeverity`,
@@ -20,9 +20,9 @@
 //!   in the markspec schema, because `FOLIO-101`/`FOLIO-102` are emitted
 //!   once per active layer (`repofolio`, `rust`, ...) and a finding must
 //!   say which one produced it. It is optional and omitted from the JSON
-//!   when absent (manifest-level codes such as `FOLIO-001`/`FOLIO-002`
-//!   are not layer-specific), which keeps it an additive field a SARIF
-//!   serialiser can carry in its `properties` bag.
+//!   when absent (manifest-level codes such as `FOLIO-001`/`FOLIO-003`/
+//!   `FOLIO-002` are not layer-specific), which keeps it an additive field
+//!   a SARIF serialiser can carry in its `properties` bag.
 
 use serde::{Deserialize, Serialize};
 
@@ -84,16 +84,16 @@ pub struct Diagnostic {
     /// The active layer (ecosystem name, e.g. `"repofolio"` or
     /// `"rust"`) that produced this finding, when the finding is
     /// per-layer. `None` for manifest-level codes (`FOLIO-001`,
-    /// `FOLIO-002`), which apply once to the whole repository rather
-    /// than once per active ecosystem.
+    /// `FOLIO-003`, `FOLIO-002`), which apply once to the whole repository
+    /// rather than once per active ecosystem.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub layer: Option<String>,
     pub location: Location,
 }
 
 /// Severity is exactly these three variants — no fourth. A skipped
-/// check (`FOLIO-002` when `FOLIO-001` already failed) is reported at
-/// `Info`, not a separate "skipped" variant: this keeps exit-code
+/// check (`FOLIO-002` when `FOLIO-001` or `FOLIO-003` already failed) is
+/// reported at `Info`, not a separate "skipped" variant: this keeps exit-code
 /// grading (error present -> 1, warnings/info alone -> 0) a matter of
 /// counting three buckets, and maps cleanly to a future SARIF `level`
 /// of `note` with `kind: notApplicable`.
@@ -121,7 +121,7 @@ pub struct Location {
 impl Location {
     /// A location naming only a file, the common case for the
     /// path-presence rules (`FOLIO-101`, `FOLIO-102`) and the
-    /// manifest rules (`FOLIO-001`, `FOLIO-002`).
+    /// manifest rules (`FOLIO-001`, `FOLIO-003`, `FOLIO-002`).
     pub fn file(file: impl Into<String>) -> Self {
         Location {
             file: file.into(),
