@@ -1,0 +1,44 @@
+{
+  "name": "com.company.dash",
+  "description": "Cross-platform SDK for the Dash service",
+  "category": ["library", "binary"],
+  "version": "1.4.2",
+  "license": "Apache-2.0",
+  "keywords": ["sdk", "cross-platform", "dash"],
+  "labels": ["ASIL-D", "safety-relevant"],
+  "authors": ["Core Platform Team <core-platform@company.com>"],
+  "homepage": "https://company.gitlab.io/dash",
+  "bugs": "https://jira.company.com/browse/DASH",
+  "repository": "https://gitlab.company.com/platform/dash-source",
+  "upstream": "https://github.com/nicegui/nicegui#develop",
+  "process": [
+    {
+      "url": "https://github.com/company/process-v2",
+      "version": "2.1",
+      "name": "Company Process"
+    }
+  ],
+  "dependencies": [
+    {
+      "url": "https://github.com/company/platform-spec",
+      "version": "1.0",
+      "name": "Platform Spec"
+    },
+    {
+      "url": "https://github.com/company/hal",
+      "version": "1.2",
+      "name": "HAL"
+    }
+  ],
+  "references": [
+    {
+      "url": "https://driftsys.github.io/refhub",
+      "name": "RefHub"
+    }
+  ],
+  "classification": "confidential",
+  "metadata": {
+    "department": "platform-engineering",
+    "cost-center": "CC-4200"
+  }
+}

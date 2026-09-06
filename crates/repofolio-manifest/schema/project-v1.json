@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://driftsys.github.io/schemas/project/v1.json",
+  "title": "Project Manifest",
+  "description": "A minimal, flat project manifest describing what the project is and where it lives.",
+  "type": "object",
+  "required": ["name", "version"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema URL for editor autocompletion and validation. Not part of the project data."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9.-]*$",
+      "description": "Reverse-domain project identifier. Globally unique, used as the canonical name across all ecosystems.",
+      "examples": ["com.company.dash", "io.driftsys.myapp"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Canonical version. Single source of truth — all ecosystem version files are derived from this value.",
+      "examples": ["1.4.2", "0.1.0", "2026.03.1"]
+    },
+    "category": {
+      "description": "Project classification. Accepts a single value or a list.",
+      "oneOf": [
+        { "$ref": "#/$defs/categoryValue" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/categoryValue" },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line summary of the project."
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license expression. Supports dual licensing (e.g., 'MIT OR Apache-2.0').",
+      "examples": ["Apache-2.0", "MIT", "MIT OR Apache-2.0"]
+    },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true,
+      "description": "Discovery tags. Free text, not validated."
+    },
+    "labels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true,
+      "description": "Process-defined labels. Vocabulary is governed by the process project and validated at compile time.",
+      "examples": [["ASIL-D", "safety-relevant"]]
+    },
+    "authors": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Project authors in 'Name <email>' format.",
+      "examples": [["Core Platform Team <core-platform@company.com>"]]
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Project website or documentation portal URL."
+    },
+    "bugs": {
+      "type": "string",
+      "format": "uri",
+      "description": "Issue tracker URL."
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "description": "Source repository URL."
+    },
+    "upstream": {
+      "type": "string",
+      "description": "Upstream repository URL for forks. Append #branch to track a specific branch (default: main).",
+      "examples": [
+        "https://github.com/nicegui/nicegui",
+        "https://github.com/nicegui/nicegui#develop"
+      ]
+    },
+    "process": {
+      "type": "array",
+      "description": "Process projects this project conforms to. Defines governance: entry types, attributes, constraints, and policies. Multiple processes are supported; constraints accumulate (most restrictive wins).",
+      "items": { "$ref": "#/$defs/projectRef" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Projects this project uses. Dependencies participate in the traceability chain: the compiler expects entries to link across the boundary and warns on coverage gaps.",
+      "items": { "$ref": "#/$defs/projectRef" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "references": {
+      "type": "array",
+      "description": "Registries and external sources this project cites. References are traceability leaves: the compiler resolves links to them but expects no deeper chain.",
+      "items": { "$ref": "#/$defs/projectRef" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "classification": {
+      "type": "string",
+      "default": "unclassified",
+      "enum": [
+        "unclassified",
+        "internal",
+        "confidential",
+        "restricted",
+        "secret",
+        "top-secret"
+      ],
+      "description": "Data classification level (ISO 27001 / government compatible). Ascending sensitivity. Defaults to unclassified."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Freeform key-value block for org-specific information. Available to templates and tools but not validated by the schema.",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "categoryValue": {
+      "type": "string",
+      "description": "Project category. Values are informative and may be defined by a process project.",
+      "examples": [
+        "manifest",
+        "specification",
+        "application",
+        "service",
+        "library",
+        "tool",
+        "binary",
+        "distribution",
+        "configuration"
+      ]
+    },
+    "projectRef": {
+      "type": "object",
+      "description": "Reference to an external project.",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Repository or published site URL."
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the referenced project."
+        },
+        "name": {
+          "type": "string",
+          "description": "Short display name for this reference."
+        }
+      }
+    }
+  }
+}
