@@ -73,24 +73,10 @@ mod tests {
     use super::*;
     use std::fs;
 
-    /// Creates an isolated, empty temporary directory for one test. Named
-    /// per-call so parallel tests never collide.
-    fn temp_root(case: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!(
-            "repofolio-manifest-discover-{case}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system clock is after the epoch")
-                .as_nanos()
-        ));
-        fs::create_dir_all(&dir).expect("create temp root");
-        dir
-    }
-
     #[test]
     fn finds_toml_alone() {
-        let root = temp_root("toml-alone");
+        let temp = tempfile::tempdir().expect("create temp dir");
+        let root = temp.path().to_path_buf();
         fs::write(root.join("project.toml"), "name = \"x\"\n").unwrap();
 
         let found = discover_manifest(&root).expect("manifest found");
@@ -101,7 +87,8 @@ mod tests {
 
     #[test]
     fn finds_yaml_alone() {
-        let root = temp_root("yaml-alone");
+        let temp = tempfile::tempdir().expect("create temp dir");
+        let root = temp.path().to_path_buf();
         fs::write(root.join("project.yaml"), "name: x\n").unwrap();
 
         let found = discover_manifest(&root).expect("manifest found");
@@ -112,7 +99,8 @@ mod tests {
 
     #[test]
     fn finds_json_alone() {
-        let root = temp_root("json-alone");
+        let temp = tempfile::tempdir().expect("create temp dir");
+        let root = temp.path().to_path_buf();
         fs::write(root.join("project.json"), "{\"name\": \"x\"}\n").unwrap();
 
         let found = discover_manifest(&root).expect("manifest found");
@@ -123,7 +111,8 @@ mod tests {
 
     #[test]
     fn errors_when_none_present() {
-        let root = temp_root("none-present");
+        let temp = tempfile::tempdir().expect("create temp dir");
+        let root = temp.path().to_path_buf();
 
         let err = discover_manifest(&root).expect_err("no manifest present");
 
@@ -134,7 +123,8 @@ mod tests {
 
     #[test]
     fn prefers_toml_over_yaml_and_json_when_multiple_present() {
-        let root = temp_root("multiple-present");
+        let temp = tempfile::tempdir().expect("create temp dir");
+        let root = temp.path().to_path_buf();
         fs::write(root.join("project.toml"), "name = \"x\"\n").unwrap();
         fs::write(root.join("project.yaml"), "name: x\n").unwrap();
         fs::write(root.join("project.json"), "{\"name\": \"x\"}\n").unwrap();
@@ -146,7 +136,8 @@ mod tests {
 
     #[test]
     fn prefers_yaml_over_json_when_toml_absent() {
-        let root = temp_root("yaml-over-json");
+        let temp = tempfile::tempdir().expect("create temp dir");
+        let root = temp.path().to_path_buf();
         fs::write(root.join("project.yaml"), "name: x\n").unwrap();
         fs::write(root.join("project.json"), "{\"name\": \"x\"}\n").unwrap();
 

@@ -123,35 +123,28 @@ mod tests {
     use super::*;
     use std::fs;
 
-    fn temp_file(case: &str, filename: &str, contents: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!(
-            "repofolio-manifest-parse-{case}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system clock is after the epoch")
-                .as_nanos()
-        ));
-        fs::create_dir_all(&dir).expect("create temp dir");
-        let path = dir.join(filename);
+    /// Creates an isolated temporary directory and writes one file into
+    /// it. Returns the directory guard alongside the file's path — the
+    /// guard must be kept bound in the caller (even as `_dir`) because
+    /// dropping it removes the directory.
+    fn temp_file(filename: &str, contents: &str) -> (tempfile::TempDir, PathBuf) {
+        let dir = tempfile::tempdir().expect("create temp dir");
+        let path = dir.path().join(filename);
         fs::write(&path, contents).expect("write temp manifest");
-        path
+        (dir, path)
     }
 
     #[test]
     fn same_logical_manifest_parses_identically_across_formats() {
-        let toml_path = temp_file(
-            "identical-toml",
+        let (_toml_dir, toml_path) = temp_file(
             "project.toml",
             "name = \"com.example.app\"\nversion = \"1.0.0\"\nkeywords = [\"a\", \"b\"]\n",
         );
-        let yaml_path = temp_file(
-            "identical-yaml",
+        let (_yaml_dir, yaml_path) = temp_file(
             "project.yaml",
             "name: com.example.app\nversion: \"1.0.0\"\nkeywords:\n  - a\n  - b\n",
         );
-        let json_path = temp_file(
-            "identical-json",
+        let (_json_dir, json_path) = temp_file(
             "project.json",
             r#"{"name": "com.example.app", "version": "1.0.0", "keywords": ["a", "b"]}"#,
         );
@@ -166,7 +159,7 @@ mod tests {
 
     #[test]
     fn invalid_toml_is_a_parse_error() {
-        let path = temp_file("invalid-toml", "project.toml", "name = \n");
+        let (_dir, path) = temp_file("project.toml", "name = \n");
 
         let err = parse_manifest(&path, ManifestFormat::Toml).expect_err("invalid toml");
 
@@ -175,7 +168,7 @@ mod tests {
 
     #[test]
     fn invalid_yaml_is_a_parse_error() {
-        let path = temp_file("invalid-yaml", "project.yaml", "name: [unclosed\n");
+        let (_dir, path) = temp_file("project.yaml", "name: [unclosed\n");
 
         let err = parse_manifest(&path, ManifestFormat::Yaml).expect_err("invalid yaml");
 
@@ -184,7 +177,7 @@ mod tests {
 
     #[test]
     fn invalid_json_is_a_parse_error() {
-        let path = temp_file("invalid-json", "project.json", "{ \"name\": }");
+        let (_dir, path) = temp_file("project.json", "{ \"name\": }");
 
         let err = parse_manifest(&path, ManifestFormat::Json).expect_err("invalid json");
 
@@ -193,7 +186,8 @@ mod tests {
 
     #[test]
     fn missing_file_is_an_io_error() {
-        let path = std::env::temp_dir().join("repofolio-manifest-parse-does-not-exist.toml");
+        let dir = tempfile::tempdir().expect("create temp dir");
+        let path = dir.path().join("does-not-exist.toml");
 
         let err = parse_manifest(&path, ManifestFormat::Toml).expect_err("file absent");
 
@@ -210,7 +204,7 @@ mod tests {
     /// would be.
     #[test]
     fn yaml_scalar_document_parses_to_a_non_object_value() {
-        let path = temp_file("yaml-scalar", "project.yaml", "just a string\n");
+        let (_dir, path) = temp_file("project.yaml", "just a string\n");
 
         let value = parse_manifest(&path, ManifestFormat::Yaml).expect("scalar yaml parses");
 
@@ -219,7 +213,7 @@ mod tests {
 
     #[test]
     fn yaml_sequence_document_parses_to_an_array_value() {
-        let path = temp_file("yaml-sequence", "project.yaml", "- a\n- b\n");
+        let (_dir, path) = temp_file("project.yaml", "- a\n- b\n");
 
         let value = parse_manifest(&path, ManifestFormat::Yaml).expect("sequence yaml parses");
 
@@ -239,11 +233,7 @@ mod tests {
     /// `is_i64()`/`is_f64()`.
     #[test]
     fn toml_integer_and_float_are_distinct_json_numbers() {
-        let path = temp_file(
-            "int-float",
-            "project.toml",
-            "int_field = 1\nfloat_field = 1.0\n",
-        );
+        let (_dir, path) = temp_file("project.toml", "int_field = 1\nfloat_field = 1.0\n");
 
         let value = parse_manifest(&path, ManifestFormat::Toml).expect("toml parses");
 

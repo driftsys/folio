@@ -24,6 +24,7 @@ thiserror = "1"
 clap = { version = "4", features = ["derive"] }
 jsonschema = "0.54"
 yaml-rust2 = "0.12"
+tempfile = "3"
 
 # Internal crates. The version literal is unavoidable — Cargo cannot inherit
 # workspace.package.version into a dependency requirement, and a path-only
