@@ -152,3 +152,25 @@ fn location_label(location: &Location) -> String {
         _ => location.file.clone(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The `warnings_human`/`clean_human` acceptance snapshots only cover
+    /// counts of 0 and 5 for "warning", both of which read correctly as
+    /// plural regardless of whether `plural()`'s `count == 1` branch
+    /// exists at all — a fixture that also pinned a count of exactly 1
+    /// would need a new snapshot per counter. This unit test pins the
+    /// boundary directly instead, for every counter `plural()` is
+    /// actually called with.
+    #[test]
+    fn plural_uses_singular_only_for_exactly_one() {
+        for singular in ["finding", "error", "warning"] {
+            assert_eq!(plural(0, singular), format!("{singular}s"));
+            assert_eq!(plural(1, singular), singular);
+            assert_eq!(plural(2, singular), format!("{singular}s"));
+            assert_eq!(plural(5, singular), format!("{singular}s"));
+        }
+    }
+}
