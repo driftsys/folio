@@ -5,6 +5,11 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Ecosystem scaffolding templates for the Repofolio standard"
+# Not ready to publish: this crate is currently just a two-line doc
+# comment (its scaffolding work lands with folio init/add, per
+# docs/planning/folio-roadmap.md). Publishing it now would permanently
+# claim the name on crates.io with no real content.
+publish = false
 
 [dependencies]
 serde.workspace = true

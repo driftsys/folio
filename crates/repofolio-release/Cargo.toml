@@ -5,6 +5,10 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Versioning and release facade for the folio CLI"
+# Not ready to publish: this crate is currently just a two-line doc
+# comment (see docs/planning/folio-plan.md, v0.5). Publishing it now
+# would permanently claim the name on crates.io with no real content.
+publish = false
 
 [dependencies]
 serde.workspace = true
