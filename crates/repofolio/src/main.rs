@@ -147,7 +147,7 @@ fn print_human(report: &Report) {
             severity_label(diagnostic.severity),
             diagnostic.code,
             location_label(&diagnostic.location),
-            diagnostic.message
+            single_line(&diagnostic.message)
         );
     }
 
@@ -161,6 +161,19 @@ fn print_human(report: &Report) {
         plural(report.by_severity.warning, "warning"),
         report.by_severity.info,
     );
+}
+
+/// Collapses `message` onto one line, joining any internal whitespace
+/// runs (including newlines) with a single space. A `Diagnostic.message`
+/// is not guaranteed single-line at the data-model level — `FOLIO-001`/
+/// `FOLIO-003` can carry `toml_edit::de::Error`'s multi-line,
+/// pretty-printed parse diagnostic (a source snippet plus a caret line)
+/// verbatim, kept that way deliberately so `--format json` and a future
+/// SARIF serializer still see the full detail. This is the one place
+/// that needs exactly one line per finding, so it collapses at render
+/// time instead of the data model discarding the detail for everyone.
+fn single_line(message: &str) -> String {
+    message.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// `singular` unchanged for a count of exactly 1, `singular` + "s"
@@ -213,5 +226,22 @@ mod tests {
             assert_eq!(plural(2, singular), format!("{singular}s"));
             assert_eq!(plural(5, singular), format!("{singular}s"));
         }
+    }
+
+    /// `ParseError::Toml`'s `Display` (surfaced verbatim in
+    /// `Diagnostic.message` for `FOLIO-003`) is multi-line by design —
+    /// `single_line` is what keeps `print_human`'s one-line-per-finding
+    /// promise, not anything upstream in `repofolio-core`.
+    #[test]
+    fn single_line_collapses_embedded_newlines_and_repeated_whitespace() {
+        let multi_line = "TOML parse error at line 1, column 8\n  |\n1 | name = \n  |        ^\ninvalid string\nexpected `\"`, `'`";
+
+        let collapsed = single_line(multi_line);
+
+        assert!(!collapsed.contains('\n'));
+        assert_eq!(
+            collapsed,
+            "TOML parse error at line 1, column 8 | 1 | name = | ^ invalid string expected `\"`, `'`"
+        );
     }
 }

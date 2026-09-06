@@ -92,27 +92,23 @@ pub fn manifest_rules(repo_root: &Path) -> Vec<Diagnostic> {
 
 /// Builds the manifest-failure diagnostic for `code` — `FOLIO-001` when
 /// the manifest could not be discovered at all, `FOLIO-003` when it was
-/// found but failed to parse.
+/// found but failed to parse. `message` is kept exactly as the
+/// underlying error rendered it — `toml_edit::de::Error`'s `Display` is a
+/// multi-line, pretty-printed diagnostic (a source snippet plus a caret
+/// line, with real line/column information) — rather than flattened
+/// here: flattening at construction time would bake a CLI rendering
+/// choice into the data model itself, permanently discarding that detail
+/// for `--format json` and any future SARIF serializer. `print_human`
+/// (`crates/repofolio/src/main.rs`) is the one place that needs a single
+/// line per finding, so it collapses whitespace at render time instead.
 fn manifest_error(code: &str, file_name: &str, message: String) -> Diagnostic {
     Diagnostic {
         severity: Severity::Error,
         code: code.to_string(),
-        message: single_line(message),
+        message,
         layer: None,
         location: Location::file(file_name.to_string()),
     }
-}
-
-/// Collapses a message onto one line, joining any internal whitespace
-/// runs (including newlines) with a single space. `toml_edit::de::Error`'s
-/// `Display` is a multi-line, pretty-printed diagnostic (a source snippet
-/// plus a caret line), and it flows unchanged into `ParseError::Toml`'s
-/// message — without this, a single malformed-TOML finding would print
-/// as several lines, breaking `print_human`'s one-line-per-finding
-/// design and leaving the printed line count disagreeing with
-/// `report.count`.
-fn single_line(message: String) -> String {
-    message.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// `FOLIO-002` reported as skipped: severity `Info`, since `reason_code`
@@ -257,12 +253,15 @@ mod tests {
         assert_eq!(diagnostics[0].severity, Severity::Error);
         assert_eq!(diagnostics[0].location.file, "project.toml");
         // toml_edit's parse-error Display is a multi-line, pretty-printed
-        // diagnostic (a source snippet plus a caret line); the message
-        // must collapse it to one line so `print_human` prints exactly
-        // one line per finding.
+        // diagnostic (a source snippet plus a caret line, with real
+        // line/column information) — kept as-is here rather than
+        // collapsed, so `--format json` and a future SARIF serializer
+        // still see it. `print_human`'s own tests pin the one-line-per-
+        // finding rendering at the point that actually needs it.
         assert!(
-            !diagnostics[0].message.contains('\n'),
-            "message contains an embedded newline: {:?}",
+            diagnostics[0].message.contains('\n'),
+            "expected toml_edit's multi-line Display to survive into the \
+             diagnostic message unmodified: {:?}",
             diagnostics[0].message
         );
         assert_eq!(diagnostics[1].code, "FOLIO-002");
