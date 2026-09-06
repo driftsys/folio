@@ -53,6 +53,12 @@ when you get there).
 
 ## Workspace layout
 
+Note: `repofolio` names both the sibling spec repo (see "Repo split" above)
+and, since 2026-09-06, the front-end **crate** below. The crate took the bare
+name because `folio` and `folio-cli` are both taken on crates.io. The
+ambiguity resolves once the two repos consolidate, at which point one repo,
+one headline crate and the `folio` binary all line up.
+
 ```
 crates/
   repofolio           — bin `folio`, thin clap front-end, no business logic
