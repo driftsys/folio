@@ -74,13 +74,17 @@ pub fn manifest_rules(repo_root: &Path) -> Vec<Diagnostic> {
 
     match validate_manifest(&value) {
         Ok(()) => Vec::new(),
-        Err(err) => vec![Diagnostic {
-            severity: Severity::Error,
-            code: FOLIO_002.to_string(),
-            message: err.to_string(),
-            layer: None,
-            location: Location::file(file_name),
-        }],
+        Err(err) => err
+            .errors
+            .into_iter()
+            .map(|message| Diagnostic {
+                severity: Severity::Error,
+                code: FOLIO_002.to_string(),
+                message,
+                layer: None,
+                location: Location::file(file_name.clone()),
+            })
+            .collect(),
     }
 }
 
@@ -250,6 +254,37 @@ mod tests {
         assert_eq!(diagnostics[0].severity, Severity::Error);
         assert_eq!(diagnostics[0].layer, None);
         assert_eq!(diagnostics[0].location.file, "project.toml");
+    }
+
+    /// A manifest with two independent schema violations must produce two
+    /// `FOLIO-002` diagnostics, not one diagnostic wrapping both — so
+    /// `count`/`bySeverity` reflect the real violation count, and no
+    /// diagnostic message is a Rust `Debug` dump of the whole violation
+    /// list.
+    #[test]
+    fn folio_002_emits_one_diagnostic_per_schema_violation() {
+        let temp = tempfile::tempdir().expect("create temp dir");
+        // "versioning" is not a recognized property (additionalProperties
+        // violation); "authors" must be an array of strings, not integers
+        // (type violation) — two independent violations.
+        fs::write(
+            temp.path().join("project.toml"),
+            "name = \"com.example.x\"\nversion = \"1.0.0\"\nversioning = \"semver\"\nauthors = [1]\n",
+        )
+        .unwrap();
+
+        let diagnostics = manifest_rules(temp.path());
+
+        assert_eq!(diagnostics.len(), 2);
+        for diagnostic in &diagnostics {
+            assert_eq!(diagnostic.code, "FOLIO-002");
+            assert_eq!(diagnostic.severity, Severity::Error);
+            assert_eq!(diagnostic.layer, None);
+            assert_eq!(diagnostic.location.file, "project.toml");
+            // Neither message is a Debug-formatted Vec — that reads as a
+            // bracketed, comma-joined, quote-escaped list.
+            assert!(!diagnostic.message.starts_with('['));
+        }
     }
 
     #[test]
