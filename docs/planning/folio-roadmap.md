@@ -51,7 +51,7 @@ contract (codes · JSON · exit semantics) holds from this release onward.
   prim vs pinned prim). **`bootstrap`** shrinks upstream: repo script does
   git plumbing + installs folio; `folio bootstrap` ensures everything else —
   including git-std, then `git std hooks install`.
-- **`fmt`/`lint`/`fix`:** `folio-fmt` spawns the pinned `prim` binary (batch
+- **`fmt`/`lint`/`fix`:** `repofolio-fmt` spawns the pinned `prim` binary (batch
   file lists, one spawn per verb, JSON in/out); shell tier shfmt + shellcheck;
   aggregated report, upstream codes passed through.
 
@@ -96,7 +96,7 @@ golden tests old-layout → current.
 ## v0.5 — Version & hooks (second delegation: git-std)
 
 **Verbs:** `version` · `hooks`
-- `folio-release` drives the **pinned `git-std` binary**, single-version mode
+- `repofolio-release` drives the **pinned `git-std` binary**, single-version mode
   pinned by config folio writes/validates; folio owns the manifest's
   `version`/`versioning` fields, git-std computes.
 - Choreography: `git std bump --dry-run --format json` → present `BumpPlan` →
@@ -157,7 +157,7 @@ guidance + shell execution, with the repo's skills installed by folio.
 *Note:* this is the **one sanctioned re-entry point** for the prim library
 option — if measured format-on-save latency demands in-process calls, a
 `prim-core` split is decided here, on numbers, and stays invisible behind
-`folio-fmt`.
+`repofolio-fmt`.
 
 ## v0.9 — Hardening & (optional) forge
 

@@ -35,7 +35,7 @@ below.
    plan JSON (`bump --dry-run --format json`) **is** the delegation interface
    now, not serde on a linked type. Plan→approve→apply stays the choreography
    for every mutating verb, folio's own included.
-3. **Facades stay folio-side** (`folio-fmt`, `folio-release`): they wrap
+3. **Facades stay folio-side** (`repofolio-fmt`, `repofolio-release`): they wrap
    `Command` + JSON parsing + `FOLIO-` code mapping + policy (single-version
    mode, walking boundary). The facade is the anti-corruption layer; that it
    spawns rather than links is an implementation detail, swappable later
@@ -194,10 +194,11 @@ whether skills install from git-hosted packages — confirm against
 
 1. **Workspace.** **`driftsys/folio` — own repo** (re-examined 2026-08-29,
    second time same day; supersedes the earlier one-repo call — see
-   rationale below). Cargo workspace: `folio-cli`, `folio-core` (check
-   engine + scoring), `folio-manifest`, `folio-templates`, **`folio-tools`**
-   (installer: resolve/fetch/verify/cache/invoke), facades `folio-fmt` +
-   `folio-release` (Command + JSON + policy), later `folio-task`.
+   rationale below). Cargo workspace: `repofolio` (bin `folio`), `repofolio-core`
+   (check engine + scoring), `repofolio-manifest`, `repofolio-templates`,
+   **`repofolio-tools`** (installer: resolve/fetch/verify/cache/invoke),
+   facades `repofolio-fmt` + `repofolio-release` (Command + JSON + policy),
+   later `repofolio-task`.
    **`repofolio` stays spec-only:** the standard's markdown, the published
    schema, and the normative `tests/fixtures/` (compliant/partial/empty) —
    a language-agnostic corpus any implementation tests against, not folio's
@@ -241,7 +242,7 @@ The first release that *spawns* tools is the release that *installs* them:
 - **`folio doctor`:** lock vs cache vs default toolset vs PATH-skew — the
   scattered skew ACs get their home. **`folio bootstrap`** re-shaped per
   consequence 5b (ensures git-std; runs `git std hooks install`).
-- **`fmt` / `lint` / `fix`:** `folio-fmt` spawns pinned prim (batch file
+- **`fmt` / `lint` / `fix`:** `repofolio-fmt` spawns pinned prim (batch file
   lists, one spawn per verb); shell tier shfmt/shellcheck; aggregated report,
   upstream codes passed through.
 
@@ -259,7 +260,7 @@ in repofolio + git-std.
 
 ### Phase M4 — v0.5 "version + hooks" (second delegation)
 
-- `folio-release` drives the pinned `git-std` binary: `git std bump --dry-run
+- `repofolio-release` drives the pinned `git-std` binary: `git std bump --dry-run
   --format json` → present `BumpPlan` → approve → `git std bump` → **verify
   actuals against plan** (fidelity AC from B2). Single-version mode pinned by
   config folio writes/validates. `hooks`: generate/validate files + shims;
