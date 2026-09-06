@@ -47,7 +47,8 @@ no second list of ecosystems that could drift from the first.
 
 ## Exit status
 
-`0` always, unless JSON serialization itself fails (an internal error,
-not a usage failure) or an unrecognized `--format` value is given (a
-usage failure clap rejects before the command runs) — both take the same
-`Result`-based `Err` path as `check`, exiting `2`.
+`0` always, unless JSON serialization itself fails — an internal error,
+surfaced through the same `Result`-based `Err` path as `check`'s own
+internal failures, exiting `2`. An unrecognized `--format` value is a
+separate usage failure clap rejects before `run()` is ever called (its
+own error message and exit `2`, not the path above).

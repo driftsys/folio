@@ -1,5 +1,6 @@
 //! folio — reference CLI implementation of the Repofolio standard.
-//! M1 scope: `check`. See docs/planning/folio-plan.md (Phase M1).
+//! M1 scope: `check` and `registry`. See docs/planning/folio-plan.md
+//! (Phase M1).
 //!
 //! `check` (M1 check-plan step 9, docs/archive/plans/2026-09-06-m1-check-plan.md)
 //! wires `repofolio_core::check` onto the command line and grades the
@@ -8,6 +9,11 @@
 //! one error-severity finding is present, 2 on a usage or internal
 //! failure. `init` and `add` come later in the same milestone, once
 //! `check` has a vertical slice — this file does not implement them yet.
+//!
+//! `registry` (added after the original check-plan, per CLAUDE.md's
+//! non-negotiable architecture decision 6) wires `repofolio_core::
+//! Registry` onto the command line; see
+//! docs/specification/folio-registry.md.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
