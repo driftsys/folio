@@ -28,16 +28,16 @@ when you get there).
    **Do not** add git-std/prim/upskill as Cargo dependencies to link their
    Rust APIs. The only sanctioned exception is a possible `prim-core` link
    inside a future LSP (v0.8), decided on measured latency, not now.
-2. **Sync only, everywhere except `mcp`.** No tokio in `folio-core`,
-   `folio-manifest`, `folio-templates`, `folio-tools`, `folio-fmt`,
-   `folio-release`, or `folio-cli`'s non-mcp paths. Async is confined to the
+2. **Sync only, everywhere except `mcp`.** No tokio in `repofolio-core`,
+   `repofolio-manifest`, `repofolio-templates`, `repofolio-tools`, `repofolio-fmt`,
+   `repofolio-release`, or `repofolio`'s non-mcp paths. Async is confined to the
    future `folio mcp` subcommand (rmcp), feature-gated.
 3. **Plan/apply for every mutating verb.** Any verb that changes state must
    support a dry-run that emits a JSON plan, and applying an unchanged plan
    must produce exactly the stated effects. `folio version` verifies this by
    diffing actual git-std output against the plan it approved.
-4. **Facades own policy, tools stay ignorant.** `folio-fmt` wraps `prim` via
-   `Command` + JSON; `folio-release` wraps `git-std` the same way. Policy
+4. **Facades own policy, tools stay ignorant.** `repofolio-fmt` wraps `prim` via
+   `Command` + JSON; `repofolio-release` wraps `git-std` the same way. Policy
    (single-version mode, `FOLIO-` code mapping, walking boundary) lives in
    these facade crates, not upstream.
 5. **folio owns repo walking.** Facades pass explicit file lists to spawned
@@ -55,30 +55,30 @@ when you get there).
 
 ```
 crates/
-  folio-cli        — bin, thin clap front-end, no business logic
-  folio-core       — check engine, scoring, FOLIO- rule registry
-  folio-manifest   — parse project.toml (+yaml/json), bundled-schema validation
-  folio-templates  — handlebars ecosystem scaffolding, managed sections
-  folio-tools      — installer: resolve/fetch/verify/cache/invoke pinned tools
-  folio-fmt        — facade: spawns prim + shfmt/shellcheck
-  folio-release    — facade: spawns git-std (version/changelog/hooks)
+  repofolio           — bin `folio`, thin clap front-end, no business logic
+  repofolio-core      — check engine, scoring, FOLIO- rule registry
+  repofolio-manifest  — parse project.toml (+yaml/json), bundled-schema validation
+  repofolio-templates — handlebars ecosystem scaffolding, managed sections
+  repofolio-tools     — installer: resolve/fetch/verify/cache/invoke pinned tools
+  repofolio-fmt       — facade: spawns prim + shfmt/shellcheck
+  repofolio-release   — facade: spawns git-std (version/changelog/hooks)
 ```
 
-`folio-task` (Foliofile runner, v0.3) and `folio-mcp`-shaped code (v0.6) are
+`repofolio-task` (Foliofile runner, v0.3) and `repofolio-mcp`-shaped code (v0.6) are
 not yet scaffolded — add them when their milestone starts, per the roadmap.
 
 ## Milestone you are almost certainly working on: M1 / v0.1 "check + init"
 
 Zero upstream dependencies. Scope, in order:
 
-1. `folio-manifest`: parse `project.toml` (toml first; yaml/json can follow),
+1. `repofolio-manifest`: parse `project.toml` (toml first; yaml/json can follow),
    validate against a **bundled** copy of the schema (never fetched at
    runtime — see `docs/planning/folio-plan.md` verification follow-up #6 on
    keeping the bundled copy in parity with the published one).
-2. `folio-core`: core-layer MUST/SHOULD/MAY rules, ecosystem-marker
+2. `repofolio-core`: core-layer MUST/SHOULD/MAY rules, ecosystem-marker
    detection, a `FOLIO-xxx` code per rule, a `Report` type that serializes
    cleanly to the tool-contract JSON shape.
-3. `folio-cli`: `folio check [--format json]` wired end to end. `folio init`
+3. `repofolio`: `folio check [--format json]` wired end to end. `folio init`
    / `folio add <ecosystem>` come after `check` has a vertical slice — don't
    parallelize these inside one session.
 4. Fixtures: reuse `tests/fixtures/` (compliant / partial / empty) from the
@@ -87,7 +87,7 @@ Zero upstream dependencies. Scope, in order:
    this very repo and against a local checkout of `git-std` before the
    milestone is called done.
 
-Do not start `folio-tools`, `folio-fmt`, or `folio-release` work yet — they
+Do not start `repofolio-tools`, `repofolio-fmt`, or `repofolio-release` work yet — they
 belong to v0.2 and v0.5 and depend on upstream stories (prim F3, git-std C3)
 that may not be done. Check `docs/planning/folio-plan.md` Part 1 before
 touching either.

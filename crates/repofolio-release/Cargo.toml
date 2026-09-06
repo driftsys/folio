@@ -1,9 +1,10 @@
 [package]
-name = "folio-core"
+name = "repofolio-release"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Versioning and release facade for the folio CLI"
 
 [dependencies]
 serde.workspace = true

@@ -1,9 +1,10 @@
 [package]
-name = "folio-tools"
+name = "repofolio-manifest"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Parser and schema validator for the Repofolio project manifest"
 
 [dependencies]
 serde.workspace = true

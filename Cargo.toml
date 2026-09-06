@@ -1,13 +1,13 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/folio-cli",
-    "crates/folio-core",
-    "crates/folio-manifest",
-    "crates/folio-templates",
-    "crates/folio-tools",
-    "crates/folio-fmt",
-    "crates/folio-release",
+    "crates/repofolio",
+    "crates/repofolio-core",
+    "crates/repofolio-manifest",
+    "crates/repofolio-templates",
+    "crates/repofolio-tools",
+    "crates/repofolio-fmt",
+    "crates/repofolio-release",
 ]
 
 [workspace.package]

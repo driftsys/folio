@@ -1,9 +1,10 @@
 [package]
-name = "folio-manifest"
+name = "repofolio-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Conformance check engine and FOLIO- rule registry for the Repofolio standard"
 
 [dependencies]
 serde.workspace = true

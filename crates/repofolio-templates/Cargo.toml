@@ -1,9 +1,10 @@
 [package]
-name = "folio-fmt"
+name = "repofolio-templates"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Ecosystem scaffolding templates for the Repofolio standard"
 
 [dependencies]
 serde.workspace = true

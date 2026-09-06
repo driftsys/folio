@@ -1,9 +1,10 @@
 [package]
-name = "folio-release"
+name = "repofolio-fmt"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Formatting and lint facade for the folio CLI"
 
 [dependencies]
 serde.workspace = true

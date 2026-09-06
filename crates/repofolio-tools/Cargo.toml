@@ -1,9 +1,10 @@
 [package]
-name = "folio-templates"
+name = "repofolio-tools"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Pinned tool installer for the folio CLI"
 
 [dependencies]
 serde.workspace = true
