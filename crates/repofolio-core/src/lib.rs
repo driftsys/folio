@@ -13,7 +13,8 @@ mod report;
 mod rules;
 
 pub use ecosystem::{
-    detect_rust, repofolio_ecosystem, rust_ecosystem, Commands, Ecosystem, EcosystemMeta, Markers,
+    detect_rust, repofolio_ecosystem, rust_ecosystem, Commands, Ecosystem, EcosystemMeta,
+    MarkerSpec, Markers,
 };
 pub use pipeline::check;
 pub use report::{BySeverity, Diagnostic, Location, Report, Severity};
