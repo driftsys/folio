@@ -7,14 +7,52 @@
 //! `src/rules.rs`.
 
 use std::collections::BTreeSet;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use repofolio_core::{check, BySeverity, Severity};
 
-fn fixture(name: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
+/// Copies fixture `name` into a fresh temp directory and returns it
+/// together with the `TempDir` guard that must stay bound for as long as
+/// the path is used (dropping it removes the directory).
+///
+/// The fixture is not used in place from `tests/fixtures/` because
+/// `compliant` and `partial` each need a real `Cargo.toml` at their root
+/// to activate the `rust` ecosystem layer under test — and a `Cargo.toml`
+/// checked in at that path would make `cargo package` silently drop the
+/// entire fixture directory as a nested package (see the `include`
+/// comment in `Cargo.toml`). The checked-in fixture instead carries it as
+/// `Cargo.toml.fixture`; this restores the real name in the copy so
+/// `check()` sees exactly the tree a real repository would have.
+fn materialize_fixture(name: &str) -> (tempfile::TempDir, PathBuf) {
+    let source = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures")
-        .join(name)
+        .join(name);
+    let temp = tempfile::tempdir().expect("create temp dir");
+    copy_dir_recursive(&source, temp.path());
+
+    let disguised_manifest = temp.path().join("Cargo.toml.fixture");
+    if disguised_manifest.is_file() {
+        fs::rename(&disguised_manifest, temp.path().join("Cargo.toml"))
+            .expect("restore Cargo.toml.fixture to Cargo.toml in the temp copy");
+    }
+
+    let root = temp.path().to_path_buf();
+    (temp, root)
+}
+
+fn copy_dir_recursive(src: &Path, dst: &Path) {
+    for entry in fs::read_dir(src).unwrap_or_else(|e| panic!("read_dir {}: {e}", src.display())) {
+        let entry = entry.expect("read dir entry");
+        let file_type = entry.file_type().expect("read file type");
+        let dst_path = dst.join(entry.file_name());
+        if file_type.is_dir() {
+            fs::create_dir_all(&dst_path).expect("create dir in temp copy");
+            copy_dir_recursive(&entry.path(), &dst_path);
+        } else if file_type.is_file() {
+            fs::copy(entry.path(), &dst_path).expect("copy file into temp copy");
+        }
+    }
 }
 
 /// Collects the `location.file` of every diagnostic matching both `code`
@@ -51,7 +89,8 @@ fn set(paths: &[&str]) -> BTreeSet<String> {
 /// layers produces no diagnostics at all.
 #[test]
 fn compliant_fixture_produces_no_diagnostics() {
-    let report = check(&fixture("compliant"));
+    let (_guard, root) = materialize_fixture("compliant");
+    let report = check(&root);
 
     assert_eq!(
         report.diagnostics,
@@ -69,7 +108,8 @@ fn compliant_fixture_produces_no_diagnostics() {
 /// spec verbatim rather than one of its two alternatives.
 #[test]
 fn partial_fixture_pins_the_expected_finding_set() {
-    let report = check(&fixture("partial"));
+    let (_guard, root) = materialize_fixture("partial");
+    let report = check(&root);
 
     // No manifest-level findings: project.toml is present and valid.
     assert!(!report.diagnostics.iter().any(|d| d.code == "FOLIO-001"));
@@ -111,7 +151,8 @@ fn partial_fixture_pins_the_expected_finding_set() {
 /// there is no Cargo.toml at all.
 #[test]
 fn empty_fixture_still_produces_path_findings_and_a_skipped_folio_002() {
-    let report = check(&fixture("empty"));
+    let (_guard, root) = materialize_fixture("empty");
+    let report = check(&root);
 
     let folio_001: Vec<_> = report
         .diagnostics
