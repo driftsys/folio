@@ -1,0 +1,3 @@
+# Fixture stub: a [workspace] table is all detect_rust() checks for.
+[workspace]
+members = []

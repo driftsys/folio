@@ -8,11 +8,13 @@
 //! build on both without reshaping them.
 
 mod ecosystem;
+mod pipeline;
 mod report;
 mod rules;
 
 pub use ecosystem::{
     detect_rust, repofolio_ecosystem, rust_ecosystem, Commands, Ecosystem, EcosystemMeta, Markers,
 };
+pub use pipeline::check;
 pub use report::{BySeverity, Diagnostic, Location, Report, Severity};
 pub use rules::{manifest_rules, path_rules};

@@ -1,0 +1,1 @@
+fixture stub: CHANGELOG.md
