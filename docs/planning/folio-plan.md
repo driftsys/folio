@@ -18,6 +18,71 @@ L ≈ multi-week. Story IDs reference the existing backlogs.
 
 ---
 
+## Command review follow-up — 2026-09-12
+
+The agreed forward-looking command semantics are in
+[folio-commands.md](../specification/folio-commands.md), summarized in the
+[roadmap revision](folio-roadmap.md#command-surface-revision--2026-09-12).
+Repository recipes override built-ins; `folio::` provides pre/post extension.
+`check` means sanity/validity, not a runtime tier. Pre-commit formats;
+pre-push checks; `all` performs non-fixing verification, including audits and
+all test/benchmark targets, warning on unavailable targets. Test/bench defaults
+come from ecosystems, with project overrides. Suites and named targets replace
+a separate device command; build profiles are optional, not imposed.
+Human output, JSON, TAP verification, and failed-run JUnit export share results.
+
+Built-in ecosystem rollout is **Rust/Cargo → Deno/TypeScript → C/C++**.
+C/C++ starts with CMake/presets, Ninja, CTest, optional Conan 2, and project-pinned
+Clang/GCC toolchains. **Gradle-based Kotlin/Java is a first-party JVM plugin**,
+using Maven-compatible package repositories; it is not a fourth built-in or
+an initial `mvn` integration. Android/AOSP remain specialized plugins.
+[The ecosystem baseline](../specification/folio-commands.md#built-in-rollout-and-first-party-plugins)
+records the detailed tool choices; the roadmap distinguishes built-in milestone
+work from optional plugin release timing.
+
+The upstream inventories below are historical planning inputs, not a fresh
+verification of sibling repositories. v0.1 remains structure-only; only the
+check/registry slice is implemented, not the full check+init milestone.
+
+## Upstream story reconciliation — 2026-09-12
+
+GitHub tracking was checked across open and closed issues on this date.
+The mapping below supersedes the historical inventories' statements about
+missing stories and current blockers. It records issue status, not verified
+release conformance: each readiness story must identify the released version
+and tests satisfying its contract before Folio treats the dependency as met.
+
+| Tool / historical IDs | Current tracking | Folio gate |
+|---|---|---|
+| git-std A1, A2, C3, B2 | [#554: versioned CLI contracts and plan/apply fidelity](https://github.com/driftsys/git-std/issues/554) — open | v0.5 |
+| git-std G1, G4, B1, B3 | [#555: registry and diagnostics](https://github.com/driftsys/git-std/issues/555) — open | v0.6 |
+| git-std D1 | [#556: release integrity, SBOM and provenance](https://github.com/driftsys/git-std/issues/556) — open | target v0.5; hard gate v0.9 |
+| prim F1; G1, A1, D2, F3 readiness | [#54: CLI contract readiness](https://github.com/driftsys/prim/issues/54) — updated, open | v0.2 |
+| prim H1′ | [#198: JSON diagnostic registry](https://github.com/driftsys/prim/issues/198) — open | v0.6 |
+| prim F2 | [#55: signed releases, SBOM and provenance](https://github.com/driftsys/prim/issues/55) — existing, open | target v0.5; hard gate v0.9 |
+
+Existing closed work is reused, not reopened: git-std
+[#48](https://github.com/driftsys/git-std/issues/48) (dry-run),
+[#62](https://github.com/driftsys/git-std/issues/62) (JSON),
+[#63](https://github.com/driftsys/git-std/issues/63) (version sync),
+[#361](https://github.com/driftsys/git-std/issues/361) (monorepo config), and
+[#430](https://github.com/driftsys/git-std/issues/430) (project manifests);
+prim [#57](https://github.com/driftsys/prim/issues/57) (verbs),
+[#43](https://github.com/driftsys/prim/issues/43) (hygiene),
+[#44](https://github.com/driftsys/prim/issues/44) (lint),
+[#49](https://github.com/driftsys/prim/issues/49) (JSON/SARIF),
+[#53](https://github.com/driftsys/prim/issues/53) (output stability), and
+[#56](https://github.com/driftsys/prim/issues/56) (prebuilts).
+
+Git-std [#74](https://github.com/driftsys/git-std/issues/74) remains closed
+**as not planned**, with links to its replacement tracking; it is not evidence
+of completed integration. Prim #54 no longer requires crate linking or an
+embedded Wasm host. It covers upstream readiness; the Folio facade, installer,
+walking, policy and final effect comparison remain Folio work. Upstream
+stories verify current interfaces and implement uncovered gaps, including
+effect-plan support for delegated mutations. No upstream code or release
+conformance was certified by this tracking update. Upskill remains unverified.
+
 ## Integration architecture (rev. 2026-08-29)
 
 Supersedes the rev-1 crate-linking design. Seven decisions, assumed everywhere
@@ -34,7 +99,9 @@ below.
 2. **Sync tools, plan/apply, registries-as-data — unchanged in spirit.** The
    plan JSON (`bump --dry-run --format json`) **is** the delegation interface
    now, not serde on a linked type. Plan→approve→apply stays the choreography
-   for every mutating verb, folio's own included.
+   for every built-in mutating verb, folio's own included. Arbitrary recipe
+   dry runs preview execution; they do not guarantee the effects of arbitrary
+   shell steps. See the command specification's execution-preview distinction.
 3. **Facades stay folio-side** (`repofolio-fmt`, `repofolio-release`): they wrap
    `Command` + JSON parsing + `FOLIO-` code mapping + policy (single-version
    mode, walking boundary). The facade is the anti-corruption layer; that it
@@ -192,25 +259,15 @@ whether skills install from git-hosted packages — confirm against
 
 ### Phase M0 — Decisions & scaffold (days, no feature code)
 
-1. **Workspace.** **`driftsys/folio` — own repo** (re-examined 2026-08-29,
-   second time same day; supersedes the earlier one-repo call — see
-   rationale below). Cargo workspace: `repofolio` (bin `folio`), `repofolio-core`
-   (check engine + scoring), `repofolio-manifest`, `repofolio-templates`,
-   **`repofolio-tools`** (installer: resolve/fetch/verify/cache/invoke),
-   facades `repofolio-fmt` + `repofolio-release` (Command + JSON + policy),
-   later `repofolio-task`.
-   **`repofolio` stays spec-only:** the standard's markdown, the published
-   schema, and the normative `tests/fixtures/` (compliant/partial/empty) —
-   a language-agnostic corpus any implementation tests against, not folio's
-   private data. folio's own crate tests and the Foliofile diagnostic corpus
-   (M3) live in `driftsys/folio`, pinning `repofolio`'s fixtures as a
-   dependency (submodule or vendoring script — decide in-repo).
-   **Rationale for the split:** folio now ships installable per-platform
-   binaries under the same tool contract (clause 5) as git-std/prim/upskill
-   — a software-release cadence (v0.1→v1.0, build matrix, signing) that
-   doesn't belong in a spec repo versioned by schema discriminator; matches
-   the pattern every sibling tool already follows; keeps `repofolio`
-   legible to someone who just wants to read the standard.
+1. **Workspace.** Consolidate the standard and CLI into one repository per
+   [decision 0002](../decisions/0002-consolidate-repofolio-and-folio-repositories.md),
+   which supersedes the 2026-08-29 split. Physical consolidation remains a
+   separate task; the decision does not imply it has happened. Normative
+   fixtures move with the standard; schema parity still references the
+   independent `driftsys/schemas` repository.
+   Cargo workspace: `repofolio` (bin `folio`), `repofolio-core`,
+   `repofolio-manifest`, `repofolio-templates`, `repofolio-tools`,
+   `repofolio-fmt`, `repofolio-release`, and later `repofolio-task`.
 2. **ADR refresh** per 1.4 #3.
 3. **Tool contract v1** — five clauses, applies to folio itself from v0.1;
    include the skills drift rule (facts vs procedure).
@@ -244,7 +301,9 @@ The first release that *spawns* tools is the release that *installs* them:
   consequence 5b (ensures git-std; runs `git std hooks install`).
 - **`fmt` / `lint` / `fix`:** `repofolio-fmt` spawns pinned prim (batch file
   lists, one spawn per verb); shell tier shfmt/shellcheck; aggregated report,
-  upstream codes passed through.
+  upstream codes passed through. Delegated `check` adds ecosystem validity
+  checks such as `cargo check`; this does not change the v0.1 structure-only
+  boundary.
 
 **Pull upstream first:** prim **F3 (P0 — prebuilts/checksums) + G1 + A1 +
 D2**. git-std needs nothing new here (assets already checksummed).
@@ -253,13 +312,21 @@ pinned `prim fmt`; a clean-machine bootstrap ends with every tool ensured.
 
 ### Phase M3 — v0.3 "task runner"
 
-Unchanged: own Rust parser (tree-sitter-foliofile stays the editor grammar;
-shared conformance corpus starts here), `deno_task_shell` execution, explicit
-`default`. **Gate:** the 4 grammar points closed. **Exit:** Justfiles retired
-in repofolio + git-std.
+Own Rust parser (tree-sitter-foliofile stays the editor grammar; shared
+conformance corpus starts here), `deno_task_shell` execution, `rust::build`
+addressing, repository recipe precedence and unshadowable `folio::` extension.
+Bare `run` lists recipes unless the repository explicitly defines a default.
+The runner implements the reviewed test/benchmark target lifecycle, configured
+scheduling, aggregate continuation/skip rules, previews, and report export;
+see the command specification for acceptance behavior. **Gate:** grammar review
+points closed, including resolution and aggregate execution changes.
+**Exit:** Justfiles retired in repofolio + git-std; configured suite/target
+execution and failed-run reporting verified before claiming runner completion.
 
 ### Phase M4 — v0.5 "version + hooks" (second delegation)
 
+- `folio version` reads the project version; `folio version bump` mutates it
+  (`--dry-run` emits the effect plan). `folio --version` identifies the CLI.
 - `repofolio-release` drives the pinned `git-std` binary: `git std bump --dry-run
   --format json` → present `BumpPlan` → approve → `git std bump` → **verify
   actuals against plan** (fidelity AC from B2). Single-version mode pinned by
@@ -268,7 +335,7 @@ in repofolio + git-std.
 
 **Pull upstream first:** git-std **A1 → C3(JSON) → B2** (+ A2). cosign/SBOM
 (git-std D1, prim F2) targeted by here.
-**Exit:** folio's own release cut by `folio version`; polyglot fixture ⇒ one
+**Exit:** folio's own release cut by `folio version bump`; polyglot fixture ⇒ one
 tag, one changelog; a divergent plan/apply is caught by the fidelity check.
 
 ### Phase M5 — v0.6 "knowledge layer"
